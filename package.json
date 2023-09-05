@@ -11,9 +11,9 @@
   },
   "samples": [
     {
-      "displayName": "iPod",
-      "description": "Utilizing UI comopnents #1",
-      "path": "Samples~/iPod"
+      "displayName": "UI Samples",
+      "description": "Utilizing UI comopnents.",
+      "path": "Samples~"
     }
   ],
   "author": {

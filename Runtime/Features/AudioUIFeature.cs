@@ -13,34 +13,45 @@ namespace Broccollie.UI
         [SerializeField] private AudioEventChannel _eventChannel = null;
         [SerializeField] private Element[] _elements = null;
 
-        protected override List<Task> GetFeatures(string state, CancellationToken ct)
+        #region Public Functions
+        public override List<Task> GetFeatures(UIStates state, bool instantChange, bool playAudio, CancellationToken ct)
         {
-            List<Task> features = new List<Task>();
-            if (_elements == null) return features;
+            if (!playAudio || _elements == null) return default; 
 
+            List<Task> features = new();
             for (int i = 0; i < _elements.Length; i++)
             {
-                if (!_elements[i].IsEnabled) continue;
+                if (!_elements[i].IsEnabled || _elements[i].Preset == null) continue;
 
-                AudioUIPreset.AudioSetting setting = Array.Find(_elements[i].Preset.Settings, x => x.ExecutionState == state);
-                if (setting == null || !setting.IsEnabled) continue;
+                AudioUIFeaturePreset.Setting setting = Array.Find(_elements[i].Preset.Settings, x => x.ExecutionState == state);
+                if (!setting.IsEnabled) continue;
 
-                features.Add(PlayAudioAsync(setting, ct));
+                if (instantChange)
+                    features.Add(PlayAudioInstantAsync(setting));
+                else
+                    features.Add(PlayAudioAsync(setting, ct));
             }
             return features;
         }
+        #endregion
 
-        private async Task PlayAudioAsync(AudioUIPreset.AudioSetting setting, CancellationToken ct)
+        private async Task PlayAudioAsync(AudioUIFeaturePreset.Setting setting, CancellationToken ct)
+        {
+            await Task.Delay((int)(setting.Delay * 1000f), ct);
+            _eventChannel.RequestPlayAudio(setting.Audio);
+        }
+
+        private async Task PlayAudioInstantAsync(AudioUIFeaturePreset.Setting setting)
         {
             _eventChannel.RequestPlayAudio(setting.Audio);
-            await Task.Delay((int)(setting.Duration * 1000f), ct);
+            await Task.Yield();
         }
 
         [Serializable]
-        public class Element
+        public struct Element
         {
             public bool IsEnabled;
-            public AudioUIPreset Preset;
+            public AudioUIFeaturePreset Preset;
         }
     }
 }

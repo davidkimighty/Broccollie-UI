@@ -4,13 +4,15 @@ using UnityEngine;
 namespace Broccollie.UI
 {
     [CreateAssetMenu(fileName = "TransformPreset", menuName = "Broccollie/UI/Preset/Transform")]
-    public class TransformUIPreset : BaseUIPreset
+    public class TransformUIFeaturePreset : ScriptableObject
     {
-        public TransformSetting[] Settings = null;
+        public Setting[] Settings;
 
         [Serializable]
-        public class TransformSetting : Setting
+        public struct Setting
         {
+            public UIStates ExecutionState;
+
             [Header("Position")]
             public bool IsPositionEnabled;
             public Vector3 TargetPosition;
@@ -29,16 +31,5 @@ namespace Broccollie.UI
             public float ScaleDuration;
             public AnimationCurve ScaleCurve;
         }
-
-#if UNITY_EDITOR
-        private void OnValidate()
-        {
-            for (int i = 0; i < Settings.Length; i++)
-            {
-                if (Settings[i].ExecutionState == null || Settings[i].ExecutionState == string.Empty)
-                    Settings[i].ExecutionState = Settings[i].ExecutionStateHelper.ToString();
-            }
-        }
-#endif
     }
 }

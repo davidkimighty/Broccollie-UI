@@ -14,32 +14,27 @@ namespace Broccollie.UI
 
         private AnimatorOverrideController _overrideController = null;
 
-        #region Override Functions
-        protected override List<Task> GetFeatures(string state, CancellationToken ct)
+        #region public Functions
+        public override List<Task> GetFeatures(UIStates state, bool instantChange, bool playAudio, CancellationToken ct)
         {
-            List<Task> features = new List<Task>();
-            if (_elements == null) return features;
+            if (_elements == null) return default;
 
+            List<Task> features = new();
             for (int i = 0; i < _elements.Length; i++)
             {
                 if (!_elements[i].IsEnabled || _elements[i].Preset == null) continue;
 
-                AnimationUIPreset.AnimationSetting setting = Array.Find(_elements[i].Preset.Settings, x => x.ExecutionState == state);
-                if (setting == null || !setting.IsEnabled) continue;
+                AnimationUIFeaturePreset.Setting setting = Array.Find(_elements[i].Preset.Settings, x => x.ExecutionState == state);
+                if (!setting.IsEnabled) continue;
 
                 features.Add(PlayAnimationAsync(state.ToString(), _elements[i], setting, ct));
             }
             return features;
         }
 
-        protected override List<Action> GetFeaturesInstant(string state)
-        {
-            return base.GetFeaturesInstant(state);
-        }
-
         #endregion
 
-        private async Task PlayAnimationAsync(string executionState, Element element, AnimationUIPreset.AnimationSetting setting, CancellationToken ct)
+        private async Task PlayAnimationAsync(string executionState, Element element, AnimationUIFeaturePreset.Setting setting, CancellationToken ct)
         {
             if (_overrideController == null)
             {
@@ -59,12 +54,12 @@ namespace Broccollie.UI
                 List<string> animationStates = new List<string>
                 {
                     UIStates.Default.ToString(),
-                    UIStates.Show.ToString(),
-                    UIStates.Hide.ToString(),
+                    UIStates.Active.ToString(),
+                    UIStates.InActive.ToString(),
                     UIStates.Interactive.ToString(),
                     UIStates.NonInteractive.ToString(),
                     UIStates.Press.ToString(),
-                    UIStates.Click.ToString()
+                    UIStates.Select.ToString()
                 };
 
                 foreach (string animationState in animationStates)
@@ -81,23 +76,18 @@ namespace Broccollie.UI
                 element.Animator.SetBool(UIStates.Hover.ToString(), true);
             }
 
-            if (executionState == UIStates.Default.ToString() || executionState == UIStates.Click.ToString())
+            if (executionState == UIStates.Default.ToString() || executionState == UIStates.Select.ToString())
                 element.Animator.SetBool(UIStates.Hover.ToString(), false);
 
             await Task.Delay(TimeSpan.FromSeconds(setting.Animation.length).Milliseconds, ct);
         }
-
-        private async Task PlayAnimationInstant()
-        {
-
-        }
     }
 
     [Serializable]
-    public class Element
+    public struct Element
     {
         public bool IsEnabled;
-        public Animator Animator = null;
-        public AnimationUIPreset Preset = null;
+        public Animator Animator;
+        public AnimationUIFeaturePreset Preset;
     }
 }

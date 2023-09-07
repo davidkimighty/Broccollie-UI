@@ -1,4 +1,3 @@
-using System;
 using UnityEngine;
 
 namespace Broccollie.UI
@@ -7,52 +6,60 @@ namespace Broccollie.UI
     public class GroupUI : MonoBehaviour
     {
         [Header("Group")]
-        [SerializeField] private UIStates _triggerState = UIStates.Click;
+        [SerializeField] private UIStates _triggerState = UIStates.Select;
         [SerializeField] private UIStates _triggeredState = UIStates.Default;
-        [SerializeField] private BaseUI[] _elements = null;
+        [SerializeField] private BaseUIElement[] _elements = null;
 
         private void OnEnable()
         {
             switch (_triggerState)
             {
-                case UIStates.Show:
+                case UIStates.Active:
                     for (int i = 0; i < _elements.Length; i++)
-                        _elements[i].OnShow += UnselectOthers;
+                        if (_elements[i].TryGetComponent<IActive>(out var active))
+                            active.OnActive += UnselectOthers;
                     break;
 
-                case UIStates.Hide:
+                case UIStates.InActive:
                     for (int i = 0; i < _elements.Length; i++)
-                        _elements[i].OnHide += UnselectOthers;
+                        if (_elements[i].TryGetComponent<IActive>(out var active))
+                            active.OnInActive += UnselectOthers;
                     break;
 
                 case UIStates.Interactive:
                     for (int i = 0; i < _elements.Length; i++)
-                        _elements[i].OnInteractive += UnselectOthers;
+                        if (_elements[i].TryGetComponent<IInteractive>(out var interactive))
+                            interactive.OnInteractive += UnselectOthers;
                     break;
 
                 case UIStates.NonInteractive:
                     for (int i = 0; i < _elements.Length; i++)
-                        _elements[i].OnNonInteractive += UnselectOthers;
+                        if (_elements[i].TryGetComponent<IInteractive>(out var interactive))
+                            interactive.OnNonInteractive += UnselectOthers;
                     break;
 
                 case UIStates.Default:
                     for (int i = 0; i < _elements.Length; i++)
-                        _elements[i].OnDefault += UnselectOthers;
+                        if (_elements[i].TryGetComponent<IDefault>(out var deFault))
+                            deFault.OnDefault += UnselectOthers;
                     break;
 
                 case UIStates.Hover:
                     for (int i = 0; i < _elements.Length; i++)
-                        _elements[i].OnHover += UnselectOthers;
+                        if (_elements[i].TryGetComponent<IHover>(out var hover))
+                            hover.OnHover += UnselectOthers;
                     break;
 
                 case UIStates.Press:
                     for (int i = 0; i < _elements.Length; i++)
-                        _elements[i].OnPress += UnselectOthers;
+                        if (_elements[i].TryGetComponent<IPress>(out var press))
+                            press.OnPress += UnselectOthers;
                     break;
 
-                case UIStates.Click:
+                case UIStates.Select:
                     for (int i = 0; i < _elements.Length; i++)
-                        _elements[i].OnClick += UnselectOthers;
+                        if (_elements[i].TryGetComponent<ISelect>(out var select))
+                            select.OnSelect += UnselectOthers;
                     break;
             }
         }
@@ -61,55 +68,63 @@ namespace Broccollie.UI
         {
             switch (_triggerState)
             {
-                case UIStates.Show:
+                case UIStates.Active:
                     for (int i = 0; i < _elements.Length; i++)
-                        _elements[i].OnShow -= UnselectOthers;
+                        if (_elements[i].TryGetComponent<IActive>(out var active))
+                            active.OnActive -= UnselectOthers;
                     break;
 
-                case UIStates.Hide:
+                case UIStates.InActive:
                     for (int i = 0; i < _elements.Length; i++)
-                        _elements[i].OnHide -= UnselectOthers;
+                        if (_elements[i].TryGetComponent<IActive>(out var active))
+                            active.OnInActive -= UnselectOthers;
                     break;
 
                 case UIStates.Interactive:
                     for (int i = 0; i < _elements.Length; i++)
-                        _elements[i].OnInteractive -= UnselectOthers;
+                        if (_elements[i].TryGetComponent<IInteractive>(out var interactive))
+                            interactive.OnInteractive -= UnselectOthers;
                     break;
 
                 case UIStates.NonInteractive:
                     for (int i = 0; i < _elements.Length; i++)
-                        _elements[i].OnNonInteractive -= UnselectOthers;
+                        if (_elements[i].TryGetComponent<IInteractive>(out var interactive))
+                            interactive.OnNonInteractive -= UnselectOthers;
                     break;
 
                 case UIStates.Default:
                     for (int i = 0; i < _elements.Length; i++)
-                        _elements[i].OnDefault -= UnselectOthers;
+                        if (_elements[i].TryGetComponent<IDefault>(out var deFault))
+                            deFault.OnDefault -= UnselectOthers;
                     break;
 
                 case UIStates.Hover:
                     for (int i = 0; i < _elements.Length; i++)
-                        _elements[i].OnHover -= UnselectOthers;
+                        if (_elements[i].TryGetComponent<IHover>(out var hover))
+                            hover.OnHover -= UnselectOthers;
                     break;
 
                 case UIStates.Press:
                     for (int i = 0; i < _elements.Length; i++)
-                        _elements[i].OnPress -= UnselectOthers;
+                        if (_elements[i].TryGetComponent<IPress>(out var press))
+                            press.OnPress -= UnselectOthers;
                     break;
 
-                case UIStates.Click:
+                case UIStates.Select:
                     for (int i = 0; i < _elements.Length; i++)
-                        _elements[i].OnClick -= UnselectOthers;
+                        if (_elements[i].TryGetComponent<ISelect>(out var select))
+                            select.OnSelect -= UnselectOthers;
                     break;
             }
         }
 
         #region Subscribers
-        private void UnselectOthers(BaseUI sender, EventArgs args)
+        private void UnselectOthers(UIEventArgs args)
         {
             for (int i = 0; i < _elements.Length; i++)
             {
-                if (_elements[i] == sender || !_elements[i].IsInteractive) continue;
-                _elements[i].ChangeState(_triggeredState.ToString(), false, false, false);
+                if (_elements[i] == args.Sender || !_elements[i].IsRaycastInteractive) continue;
+                _ = _elements[i].ExecuteBehaviorAsync(_triggeredState, false, false);
             }
         }
 

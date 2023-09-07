@@ -10,12 +10,12 @@ namespace Broccollie.UI
     {
         public event Action OnBeginScroll = null;
         public event Action OnEndScroll = null;
-        public event Action<BaseUI, int> OnFocusElement = null;
-        public event Action<BaseUI, int> OnUnfocusElement = null;
+        public event Action<BaseUIElement, int> OnFocusElement = null;
+        public event Action<BaseUIElement, int> OnUnfocusElement = null;
 
         [SerializeField] private string _preSetupElementsKey = "pre";
-        [SerializeField] private List<BaseUI> _preSetupScrollElements = new List<BaseUI>();
-        public List<BaseUI> ScrollElements
+        [SerializeField] private List<BaseUIElement> _preSetupScrollElements = new();
+        public List<BaseUIElement> ScrollElements
         {
             get => _preSetupScrollElements;
         }
@@ -30,10 +30,10 @@ namespace Broccollie.UI
 
         [Header("Knob")]
         [SerializeField] private bool _useKnob = true;
-        [SerializeField] private BaseUI _knobPrefab = null;
+        [SerializeField] private BaseUIElement _knobPrefab = null;
         [SerializeField] private Transform _knobHolder = null;
 
-        private Dictionary<string, List<BaseUI>> _scrollElements = new();
+        private Dictionary<string, List<BaseUIElement>> _scrollElements = new();
         private Dictionary<string, float[]> _anchorPoints = new();
         private Dictionary<string, float> _subdivisionDists = new();
         private string _currentKey = "";
@@ -42,8 +42,8 @@ namespace Broccollie.UI
         private float _scrollbarValue = 0f;
         private bool _dragging = false;
 
-        private BaseUI[] _knobs = null;
-        public BaseUI[] Knobs
+        private BaseUIElement[] _knobs = null;
+        public BaseUIElement[] Knobs
         {
             get => _knobs;
         }
@@ -63,7 +63,7 @@ namespace Broccollie.UI
             for (int i = 0; i < childCount; i++)
                 _anchorPoints[_preSetupElementsKey][i] = _subdivisionDists[_preSetupElementsKey] * i;
 
-            _scrollElements = new Dictionary<string, List<BaseUI>>() { { _preSetupElementsKey, _preSetupScrollElements } };
+            _scrollElements = new Dictionary<string, List<BaseUIElement>>() { { _preSetupElementsKey, _preSetupScrollElements } };
             _currentKey = _preSetupElementsKey;
 
             if (_useKnob)
@@ -75,15 +75,16 @@ namespace Broccollie.UI
                     _knobs = null;
                 }
 
-                List<BaseUI> knobs = new List<BaseUI>();
+                List<BaseUIElement> knobs = new();
                 for (int i = 0; i < childCount; i++)
                 {
-                    BaseUI knob = Instantiate(_knobPrefab, _knobHolder);
+                    BaseUIElement knob = Instantiate(_knobPrefab, _knobHolder);
                     knob.gameObject.name += " " + i.ToString();
                     knobs.Add(knob);
 
                     int index = i;
-                    knob.OnClick += (eventArgs, sender) => ClickKnob(index);
+                    if (knob.TryGetComponent<ISelect>(out ISelect selectable))
+                        selectable.OnSelect += (eventArgs) => ClickKnob(index);
                 }
                 _knobs = knobs.ToArray();
             }
@@ -111,13 +112,13 @@ namespace Broccollie.UI
         }
 
         #region Public Functions
-        public void InitElementGroup(string key, BaseUI prefab, int count)
+        public void InitElementGroup(string key, BaseUIElement prefab, int count)
         {
-            if (_scrollElements.TryGetValue(key, out List<BaseUI> elements))
+            if (_scrollElements.TryGetValue(key, out List<BaseUIElement> elements))
                 InstantiateGroup(elements);
             else
             {
-                List<BaseUI> newGroup = new List<BaseUI>();
+                List<BaseUIElement> newGroup = new();
                 InstantiateGroup(newGroup);
                 _scrollElements.Add(key, newGroup);
             }
@@ -136,11 +137,11 @@ namespace Broccollie.UI
             for (int i = 0; i < childCount; i++)
                 _anchorPoints[_currentKey][i] = _subdivisionDists[_currentKey] * i;
 
-            void InstantiateGroup(List<BaseUI> group)
+            void InstantiateGroup(List<BaseUIElement> group)
             {
                 for (int i = 0; i < count; i++)
                 {
-                    BaseUI element = Instantiate(prefab, _contentHolder);
+                    BaseUIElement element = Instantiate(prefab, _contentHolder);
                     element.gameObject.SetActive(false);
                     group.Add(element);
                 }
@@ -149,15 +150,15 @@ namespace Broccollie.UI
 
         public void EnableElementGroup(string key)
         {
-            if (_scrollElements.TryGetValue(_currentKey, out List<BaseUI> currentElements))
+            if (_scrollElements.TryGetValue(_currentKey, out List<BaseUIElement> currentElements))
             {
-                foreach (BaseUI element in currentElements)
+                foreach (BaseUIElement element in currentElements)
                     element.gameObject.SetActive(false);
             }
 
-            if (_scrollElements.TryGetValue(key, out List<BaseUI> elements))
+            if (_scrollElements.TryGetValue(key, out List<BaseUIElement> elements))
             {
-                foreach (BaseUI element in elements)
+                foreach (BaseUIElement element in elements)
                     element.gameObject.SetActive(true);
                 _currentKey = key;
             }
@@ -167,7 +168,7 @@ namespace Broccollie.UI
 
         public int GetPageCount(string key)
         {
-            if (_scrollElements.TryGetValue(key, out List<BaseUI> elements))
+            if (_scrollElements.TryGetValue(key, out List<BaseUIElement> elements))
                 return elements.Count;
             return 0;
         }

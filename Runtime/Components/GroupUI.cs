@@ -2,10 +2,8 @@ using UnityEngine;
 
 namespace Broccollie.UI
 {
-    [DefaultExecutionOrder(-110)]
     public class GroupUI : MonoBehaviour
     {
-        [Header("Group")]
         [SerializeField] private UIStates _triggerState = UIStates.Select;
         [SerializeField] private UIStates _triggeredState = UIStates.Default;
         [SerializeField] private BaseUIElement[] _elements = null;
@@ -119,12 +117,54 @@ namespace Broccollie.UI
         }
 
         #region Subscribers
-        private void UnselectOthers(UIEventArgs args)
+        private async void UnselectOthers(UIEventArgs args)
         {
             for (int i = 0; i < _elements.Length; i++)
             {
                 if (_elements[i] == args.Sender || !_elements[i].IsRaycastInteractive) continue;
-                _ = _elements[i].ExecuteBehaviorAsync(_triggeredState, false, false);
+
+                switch (_triggeredState)
+                {
+                    case UIStates.Active:
+                        if (_elements[i].TryGetComponent<IActive>(out var active))
+                            await active.SetActiveAsync(true, false, false, false);
+                        break;
+
+                    case UIStates.InActive:
+                        if (_elements[i].TryGetComponent<IActive>(out var inactive))
+                            await inactive.SetActiveAsync(false, false, false, false);
+                        break;
+
+                    case UIStates.Interactive:
+                        if (_elements[i].TryGetComponent<IInteractive>(out var interactive))
+                            await interactive.SetInteractiveAsync(true, false, false, false);
+                        break;
+
+                    case UIStates.NonInteractive:
+                        if (_elements[i].TryGetComponent<IInteractive>(out var noninteractive))
+                            await noninteractive.SetInteractiveAsync(false, false, false, false);
+                        break;
+
+                    case UIStates.Default:
+                        if (_elements[i].TryGetComponent<IDefault>(out var deFault))
+                            await deFault.DefaultAsync(false, false, false);
+                        break;
+
+                    case UIStates.Hover:
+                        if (_elements[i].TryGetComponent<IHover>(out var hover))
+                            await hover.HoverAsync(false, false, false);
+                        break;
+
+                    case UIStates.Press:
+                        if (_elements[i].TryGetComponent<IPress>(out var press))
+                            await press.PressAsync(false, false, false);
+                        break;
+
+                    case UIStates.Select:
+                        if (_elements[i].TryGetComponent<ISelect>(out var select))
+                            await select.SelectAsync(false, false, false);
+                        break;
+                }
             }
         }
 

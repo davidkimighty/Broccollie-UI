@@ -9,7 +9,6 @@ namespace Broccollie.UI
 {
     public class TransformUIFeature : BaseUIFeature
     {
-        [Header("Transform Feature")]
         [SerializeField] private Element[] _elements = null;
 
         private Vector3[] _startPositions = null;
@@ -18,28 +17,36 @@ namespace Broccollie.UI
         #region Public Functions
         public override List<Task> GetFeatures(UIStates state, bool instantChange, bool playAudio, CancellationToken ct)
         {
-            if (_elements == null) return default;
-            Initialize();
-
-            List<Task> features = new();
-            for (int i = 0; i < _elements.Length; i++)
+            try
             {
-                if (!_elements[i].IsEnabled || _elements[i].Preset == null) continue;
+                if (_elements == null) return default;
+                Initialize();
 
-                TransformUIFeaturePreset.Setting setting = Array.Find(_elements[i].Preset.Settings, x => x.ExecutionState == state);
-                if (setting.IsPositionEnabled)
+                List<Task> features = new();
+                for (int i = 0; i < _elements.Length; i++)
                 {
-                    Vector3 targetValue = state != UIStates.Default ? _startPositions[i] + setting.TargetPosition : _startPositions[i];
-                    features.Add(_elements[i].Target.LerpLocalPositionAsync(targetValue, setting.PositionDuration, ct, setting.PositionCurve));
+                    ct.ThrowIfCancellationRequested();
+                    if (!_elements[i].IsEnabled || _elements[i].Preset == null) continue;
+
+                    TransformUIFeaturePreset.Setting setting = Array.Find(_elements[i].Preset.Settings, x => x.ExecutionState == state);
+                    if (setting.IsPositionEnabled)
+                    {
+                        Vector3 targetValue = state != UIStates.Default ? _startPositions[i] + setting.TargetPosition : _startPositions[i];
+                        features.Add(_elements[i].Target.LerpLocalPositionAsync(targetValue, setting.PositionDuration, ct, setting.PositionCurve));
+                    }
+
+                    if (setting.IsRotationEnabled)
+                        features.Add(_elements[i].Target.LerpRotationAsync(Quaternion.Euler(setting.TargetRotation), setting.RotationDuration, ct, setting.RotationCurve));
+
+                    if (setting.IsScaleEnabled)
+                        features.Add(_elements[i].Target.LerpScaleAsync(setting.TargetScale, setting.ScaleDuration, ct, setting.ScaleCurve));
                 }
-
-                if (setting.IsRotationEnabled)
-                    features.Add(_elements[i].Target.LerpRotationAsync(Quaternion.Euler(setting.TargetRotation), setting.RotationDuration, ct, setting.RotationCurve));
-
-                if (setting.IsScaleEnabled)
-                    features.Add(_elements[i].Target.LerpScaleAsync(setting.TargetScale, setting.ScaleDuration, ct, setting.ScaleCurve));
+                return features;
             }
-            return features;
+            catch (OperationCanceledException)
+            {
+                return default;
+            }
         }
 
         #endregion

@@ -9,28 +9,35 @@ namespace Broccollie.UI
 {
     public class SpriteUIFeature : BaseUIFeature
     {
-        [Header("Sprite Feature")]
         [SerializeField] private Element[] _elements = null;
 
         #region Public Functions
         public override List<Task> GetFeatures(UIStates state, bool instantChange, bool playAudio, CancellationToken ct)
         {
-            if (_elements == null) return default;
-
-            List<Task> features = new();
-            for (int i = 0; i < _elements.Length; i++)
+            try
             {
-                if (!_elements[i].IsEnabled || _elements[i].Preset == null) continue;
+                if (_elements == null) return default;
 
-                SpriteUIFeaturePreset.Setting setting = Array.Find(_elements[i].Preset.Settings, x => x.ExecutionState == state);
-                if (!setting.IsEnabled) continue;
+                List<Task> features = new();
+                for (int i = 0; i < _elements.Length; i++)
+                {
+                    ct.ThrowIfCancellationRequested();
+                    if (!_elements[i].IsEnabled || _elements[i].Preset == null) continue;
 
-                if (instantChange)
-                    features.Add(SpriteSwapInstantAsync(_elements[i].Graphic, setting));
-                else
-                    features.Add(SpriteSwapAsync(_elements[i].Graphic, setting, ct));
+                    SpriteUIFeaturePreset.Setting setting = Array.Find(_elements[i].Preset.Settings, x => x.ExecutionState == state);
+                    if (!setting.IsEnabled) continue;
+
+                    if (instantChange)
+                        features.Add(SpriteSwapInstantAsync(_elements[i].Graphic, setting));
+                    else
+                        features.Add(SpriteSwapAsync(_elements[i].Graphic, setting, ct));
+                }
+                return features;
             }
-            return features;
+            catch (OperationCanceledException)
+            {
+                return default;
+            }
         }
 
         #endregion

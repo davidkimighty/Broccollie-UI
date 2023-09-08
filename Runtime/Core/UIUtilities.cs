@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Threading;
 using System.Threading.Tasks;
 using UnityEngine;
 using UnityEngine.EventSystems;
@@ -10,28 +9,25 @@ namespace Broccollie.UI
     public static class UIUtilities
     {
         #region Public Functions
-        public static void HandleCancellation(CancellationTokenSource cts)
-        {
-            cts.Cancel();
-            cts = new CancellationTokenSource();
-        }
-
         public static async Task ExecuteBehaviorAsync(this BaseUIElement ui, UIStates state, bool instantChange, bool playAudio)
         {
             try
             {
-                List<Task> featureTasks = new List<Task>();
+                ui.RenewCancelToken();
+                List<Task> featureTasks = new();
                 foreach (BaseUIFeature feature in ui.Features)
                 {
                     if (!feature.IsEnabled) continue;
-                    featureTasks.AddRange(feature.GetFeatures(state, instantChange, playAudio, ui.Cts.Token));
+                    List<Task> tasks = feature.GetFeatures(state, instantChange, playAudio, ui.Cts.Token);
+                    if (tasks != null)
+                        featureTasks.AddRange(tasks);
                 }
                 await Task.WhenAll(featureTasks);
             }
             catch (OperationCanceledException) { }
         }
 
-        public static void MoveToNextSelectable(BaseUIElement navigable, AxisEventData eventData, List<BaseUIElement> activeList)
+        public static void MoveToNextSelectable(this BaseUIElement navigable, AxisEventData eventData, List<BaseUIElement> activeList)
         {
             switch (eventData.moveDir)
             {
@@ -102,6 +98,5 @@ namespace Broccollie.UI
 
         #endregion
 
-        
     }
 }

@@ -9,29 +9,36 @@ namespace Broccollie.UI
 {
     public class AudioUIFeature : BaseUIFeature
     {
-        [Header("Audio Feature")]
         [SerializeField] private AudioEventChannel _eventChannel = null;
         [SerializeField] private Element[] _elements = null;
 
         #region Public Functions
         public override List<Task> GetFeatures(UIStates state, bool instantChange, bool playAudio, CancellationToken ct)
         {
-            if (!playAudio || _elements == null) return default; 
-
-            List<Task> features = new();
-            for (int i = 0; i < _elements.Length; i++)
+            try
             {
-                if (!_elements[i].IsEnabled || _elements[i].Preset == null) continue;
+                if (!playAudio || _elements == null) return default;
 
-                AudioUIFeaturePreset.Setting setting = Array.Find(_elements[i].Preset.Settings, x => x.ExecutionState == state);
-                if (!setting.IsEnabled) continue;
+                List<Task> features = new();
+                for (int i = 0; i < _elements.Length; i++)
+                {
+                    ct.ThrowIfCancellationRequested();
+                    if (!_elements[i].IsEnabled || _elements[i].Preset == null) continue;
 
-                if (instantChange)
-                    features.Add(PlayAudioInstantAsync(setting));
-                else
-                    features.Add(PlayAudioAsync(setting, ct));
+                    AudioUIFeaturePreset.Setting setting = Array.Find(_elements[i].Preset.Settings, x => x.ExecutionState == state);
+                    if (!setting.IsEnabled) continue;
+
+                    if (instantChange)
+                        features.Add(PlayAudioInstantAsync(setting));
+                    else
+                        features.Add(PlayAudioAsync(setting, ct));
+                }
+                return features;
             }
-            return features;
+            catch (OperationCanceledException)
+            {
+                return default;
+            }
         }
         #endregion
 

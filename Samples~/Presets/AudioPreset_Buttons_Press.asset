@@ -9,12 +9,11 @@ MonoBehaviour:
   m_GameObject: {fileID: 0}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 977c33053c3d24bbc9cbdaeaa0c51e78, type: 3}
-  m_Name: AudioPreset_Keyboard
+  m_Script: {fileID: 11500000, guid: fd3975b9d55214ffdb3f224d979e0c90, type: 3}
+  m_Name: AudioPreset_Buttons_Press
   m_EditorClassIdentifier: 
   Settings:
-  - ExecutionStateHelper: 6
-    ExecutionState: Press
-    IsEnabled: 1
+  - IsEnabled: 1
+    ExecutionState: 6
     Audio: {fileID: 11400000, guid: c4e446b340b4046ed832f034e5092307, type: 2}
-    Duration: 0
+    Delay: 0

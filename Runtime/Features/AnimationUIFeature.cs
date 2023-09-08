@@ -9,7 +9,6 @@ namespace Broccollie.UI
     [DisallowMultipleComponent]
     public class AnimationUIFeature : BaseUIFeature
     {
-        [Header("Animation Feature")]
         [SerializeField] private Element[] _elements = null;
 
         private AnimatorOverrideController _overrideController = null;
@@ -17,19 +16,27 @@ namespace Broccollie.UI
         #region public Functions
         public override List<Task> GetFeatures(UIStates state, bool instantChange, bool playAudio, CancellationToken ct)
         {
-            if (_elements == null) return default;
-
-            List<Task> features = new();
-            for (int i = 0; i < _elements.Length; i++)
+            try
             {
-                if (!_elements[i].IsEnabled || _elements[i].Preset == null) continue;
+                if (_elements == null) return default;
 
-                AnimationUIFeaturePreset.Setting setting = Array.Find(_elements[i].Preset.Settings, x => x.ExecutionState == state);
-                if (!setting.IsEnabled) continue;
+                List<Task> features = new();
+                for (int i = 0; i < _elements.Length; i++)
+                {
+                    ct.ThrowIfCancellationRequested();
+                    if (!_elements[i].IsEnabled || _elements[i].Preset == null) continue;
 
-                features.Add(PlayAnimationAsync(state.ToString(), _elements[i], setting, ct));
+                    AnimationUIFeaturePreset.Setting setting = Array.Find(_elements[i].Preset.Settings, x => x.ExecutionState == state);
+                    if (!setting.IsEnabled) continue;
+
+                    features.Add(PlayAnimationAsync(state.ToString(), _elements[i], setting, ct));
+                }
+                return features;
             }
-            return features;
+            catch (OperationCanceledException e)
+            {
+                return default;
+            }
         }
 
         #endregion

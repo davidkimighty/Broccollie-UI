@@ -16,30 +16,36 @@ namespace Broccollie.UI
         #region Public Functions
         public override List<Task> GetFeatures(UIStates state, bool instantChange, bool playAudio, CancellationToken ct)
         {
-            if (_elements == null) return default;
-
-            List<Task> features = new List<Task>();
-            for (int i = 0; i < _elements.Length; i++)
+            try
             {
-                if (!_elements[i].IsEnabled || _elements[i].Preset == null) continue;
+                if (_elements == null) return default;
 
-                ColorUIFeaturePreset.Setting setting = Array.Find(_elements[i].Preset.Settings, x => x.ExecutionState == state);
-                if (!setting.IsEnabled) continue;
+                List<Task> features = new List<Task>();
+                for (int i = 0; i < _elements.Length; i++)
+                {
+                    ct.ThrowIfCancellationRequested();
+                    if (!_elements[i].IsEnabled || _elements[i].Preset == null) continue;
 
-                if (instantChange)
-                    features.Add(InstantColorChange(_elements[i].Graphic, setting.TargetColor, ct));
-                else
-                    features.Add(_elements[i].Graphic.LerpColorAsync(setting.TargetColor, setting.Duration, ct, setting.Curve));
+                    ColorUIFeaturePreset.Setting setting = Array.Find(_elements[i].Preset.Settings, x => x.ExecutionState == state);
+                    if (!setting.IsEnabled) continue;
+
+                    if (instantChange)
+                        features.Add(InstantColorChange(_elements[i].Graphic, setting.TargetColor, ct));
+                    else
+                        features.Add(_elements[i].Graphic.LerpColorAsync(setting.TargetColor, setting.Duration, ct, setting.Curve));
+                }
+                return features;
             }
-            return features;
+            catch (OperationCanceledException)
+            {
+                return default;
+            }
         }
 
         #endregion
 
         private async Task InstantColorChange(MaskableGraphic graphic, Color color, CancellationToken ct)
         {
-            if (ct.IsCancellationRequested)
-                ct.ThrowIfCancellationRequested();
             graphic.color = color;
             await Task.Yield();
         }

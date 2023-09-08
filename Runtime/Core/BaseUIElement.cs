@@ -17,7 +17,7 @@ namespace Broccollie.UI
             get => _features;
         }
 
-        protected bool _isRaycastInteractive = false;
+        protected bool _isRaycastInteractive = true;
         public bool IsRaycastInteractive
         {
             get => _isRaycastInteractive;
@@ -31,6 +31,10 @@ namespace Broccollie.UI
 
         #region Public Functions
         public virtual void SetRaycastInteractive(bool state) => _isRaycastInteractive = state;
+
+        public virtual void CancelCancellationToken() => _cts.Cancel();
+
+        public virtual void RenewCancelToken() => _cts = new();
 
         #endregion
 

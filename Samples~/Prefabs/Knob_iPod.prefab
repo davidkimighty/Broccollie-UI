@@ -142,8 +142,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   _isEnabled: 1
-  _featureType: 0
   _elements:
   - IsEnabled: 1
     Graphic: {fileID: 5688312467750195456}
-    Preset: {fileID: 11400000, guid: 0fb82b3ff300f44b69c79420a1e3cf54, type: 2}
+    Preset: {fileID: 11400000, guid: 69618849eda7945daab66574d47b4d25, type: 2}

@@ -9,13 +9,12 @@ MonoBehaviour:
   m_GameObject: {fileID: 0}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 733e03e09b69642588c3de156f18dfce, type: 3}
-  m_Name: ColorPreset_Selectable_Background
+  m_Script: {fileID: 11500000, guid: d4b62e5fce9d848569b31d6df8f25ec3, type: 3}
+  m_Name: ColorPreset_Buttons_Background
   m_EditorClassIdentifier: 
   Settings:
-  - ExecutionStateHelper: 0
-    ExecutionState: Default
-    IsEnabled: 1
+  - IsEnabled: 1
+    ExecutionState: 0
     TargetColor: {r: 0, g: 0, b: 0, a: 0}
     Duration: 0.3
     Curve:
@@ -42,11 +41,10 @@ MonoBehaviour:
       m_PreInfinity: 2
       m_PostInfinity: 2
       m_RotationOrder: 4
-  - ExecutionStateHelper: 5
-    ExecutionState: Hover
-    IsEnabled: 1
-    TargetColor: {r: 1, g: 1, b: 1, a: 0}
-    Duration: 0
+  - IsEnabled: 1
+    ExecutionState: 5
+    TargetColor: {r: 0, g: 0, b: 0, a: 0}
+    Duration: 0.3
     Curve:
       serializedVersion: 2
       m_Curve:
@@ -71,11 +69,10 @@ MonoBehaviour:
       m_PreInfinity: 2
       m_PostInfinity: 2
       m_RotationOrder: 4
-  - ExecutionStateHelper: 6
-    ExecutionState: Press
-    IsEnabled: 1
+  - IsEnabled: 1
+    ExecutionState: 6
     TargetColor: {r: 1, g: 1, b: 1, a: 1}
-    Duration: 0.15
+    Duration: 0.3
     Curve:
       serializedVersion: 2
       m_Curve:
@@ -100,9 +97,8 @@ MonoBehaviour:
       m_PreInfinity: 2
       m_PostInfinity: 2
       m_RotationOrder: 4
-  - ExecutionStateHelper: 7
-    ExecutionState: Click
-    IsEnabled: 1
+  - IsEnabled: 1
+    ExecutionState: 7
     TargetColor: {r: 1, g: 1, b: 1, a: 1}
     Duration: 0.3
     Curve:

@@ -54,7 +54,7 @@ namespace Broccollie.UI
         }
 
         #region Public Functions
-        public async Task SetActiveAsync(bool state, bool instantChange = false, bool playAudio = false, bool invokeEvent = false)
+        public async Task SetActiveAsync(bool state, bool instantChange = false, bool playAudio = true, bool invokeEvent = true)
         {
             if (state)
                 gameObject.SetActive(true);
@@ -62,10 +62,8 @@ namespace Broccollie.UI
 
             if (_features != null && _features.Count > 0)
             {
-                UIUtilities.HandleCancellation(_cts);
-                
+                CancelCancellationToken();
                 await this.ExecuteBehaviorAsync(_currentState, instantChange, playAudio);
-
                 if (state)
                     await this.ExecuteBehaviorAsync(UIStates.Default, instantChange, playAudio);
             }
@@ -79,16 +77,15 @@ namespace Broccollie.UI
             }
         }
 
-        public async Task SetInteractiveAsync(bool state, bool instantChange = false, bool playAudio = false, bool invokeEvent = false)
+        public async Task SetInteractiveAsync(bool state, bool instantChange = false, bool playAudio = true, bool invokeEvent = true)
         {
             _isInteractive = state;
             _currentState = state ? UIStates.Interactive : UIStates.NonInteractive;
 
             if (_features != null && _features.Count > 0)
             {
-                UIUtilities.HandleCancellation(_cts);
+                CancelCancellationToken();
                 await this.ExecuteBehaviorAsync(_currentState, instantChange, playAudio);
-
                 if (state)
                     await this.ExecuteBehaviorAsync(UIStates.Default, instantChange, playAudio);
             }
@@ -99,14 +96,14 @@ namespace Broccollie.UI
                 OnNonInteractive?.Invoke(new UIEventArgs { Sender = this });
         }
 
-        public async Task DefaultAsync(bool instantChange = false, bool playAudio = false, bool invokeEvent = false)
+        public async Task DefaultAsync(bool instantChange = false, bool playAudio = true, bool invokeEvent = true)
         {
             _isSelected = false;
             _currentState = UIStates.Default;
 
             if (_features != null && _features.Count > 0)
             {
-                UIUtilities.HandleCancellation(_cts);
+                CancelCancellationToken();
                 await this.ExecuteBehaviorAsync(UIStates.Default, instantChange, playAudio);
             }
 
@@ -114,14 +111,14 @@ namespace Broccollie.UI
                 OnDefault?.Invoke(new UIEventArgs { Sender = this });
         }
 
-        public async Task HoverAsync(bool instantChange = false, bool playAudio = false, bool invokeEvent = false)
+        public async Task HoverAsync(bool instantChange = false, bool playAudio = true, bool invokeEvent = true)
         {
             _isHovered = true;
             _currentState = UIStates.Hover;
 
             if (_features != null && _features.Count > 0)
             {
-                UIUtilities.HandleCancellation(_cts);
+                CancelCancellationToken();
                 await this.ExecuteBehaviorAsync(UIStates.Hover, instantChange, playAudio);
             }
 
@@ -129,13 +126,13 @@ namespace Broccollie.UI
                 OnHover?.Invoke(new UIEventArgs { Sender = this });
         }
 
-        public async Task PressAsync(bool instantChange = false, bool playAudio = false, bool invokeEvent = false)
+        public async Task PressAsync(bool instantChange = false, bool playAudio = true, bool invokeEvent = true)
         {
             _currentState = UIStates.Press;
 
             if (_features != null && _features.Count > 0)
             {
-                UIUtilities.HandleCancellation(_cts);
+                CancelCancellationToken();
                 await this.ExecuteBehaviorAsync(UIStates.Press, instantChange, playAudio);
             }
 
@@ -143,7 +140,7 @@ namespace Broccollie.UI
                 OnPress?.Invoke(new UIEventArgs { Sender = this });
         }
 
-        public async Task SelectAsync(bool instantChange = false, bool playAudio = false, bool invokeEvent = false)
+        public async Task SelectAsync(bool instantChange = false, bool playAudio = true, bool invokeEvent = true)
         {
             switch (_buttonType)
             {
@@ -170,13 +167,12 @@ namespace Broccollie.UI
             {
                 bool usingFeature = _features != null && _features.Count > 0;
                 if (usingFeature)
-                    UIUtilities.HandleCancellation(_cts);
+                    CancelCancellationToken();
 
                 _isSelected = !_isSelected;
                 if (_isSelected)
                 {
                     _currentState = UIStates.Select;
-
                     if (usingFeature)
                         await this.ExecuteBehaviorAsync(UIStates.Select, instantChange, playAudio);
 
@@ -186,7 +182,6 @@ namespace Broccollie.UI
                 else
                 {
                     _currentState = UIStates.Default;
-
                     if (usingFeature)
                         await this.ExecuteBehaviorAsync(UIStates.Default, instantChange, playAudio);
 
@@ -203,7 +198,7 @@ namespace Broccollie.UI
 
                 if (_features != null && _features.Count > 0)
                 {
-                    UIUtilities.HandleCancellation(_cts);
+                    CancelCancellationToken();
                     await this.ExecuteBehaviorAsync(UIStates.Select, instantChange, playAudio);
                 }
 
@@ -214,7 +209,7 @@ namespace Broccollie.UI
 
         public void Navigate(MoveDirection direction, bool invokeEvent = false)
         {
-            UIUtilities.MoveToNextSelectable(this, new(EventSystem.current) { moveDir = direction }, s_activeButtons);
+            this.MoveToNextSelectable(new(EventSystem.current) { moveDir = direction }, s_activeButtons);
 
             if (invokeEvent)
                 OnNavigate?.Invoke(new UIEventArgs { Sender = this }, direction);
@@ -222,7 +217,7 @@ namespace Broccollie.UI
 
         public void Navigate(AxisEventData eventData, bool invokeEvent = false)
         {
-            UIUtilities.MoveToNextSelectable(this, eventData, s_activeButtons);
+            this.MoveToNextSelectable(eventData, s_activeButtons);
 
             if (invokeEvent)
                 OnNavigate?.Invoke(new UIEventArgs { Sender = this }, eventData.moveDir);
@@ -234,25 +229,25 @@ namespace Broccollie.UI
         void IPointerEnterHandler.OnPointerEnter(PointerEventData eventData)
         {
             if (!_isRaycastInteractive || !_isInteractive) return;
-            _ = HoverAsync(false, true, true);
+            _ = HoverAsync();
         }
 
         void IPointerExitHandler.OnPointerExit(PointerEventData eventData)
         {
             if (!_isRaycastInteractive || !_isInteractive) return;
-            _ = ExitAsync(true, true);
+            _ = ExitAsync();
         }
 
         void ISelectHandler.OnSelect(BaseEventData eventData)
         {
             if (!_isRaycastInteractive || !_isInteractive) return;
-            _ = HoverAsync(false, true, true);
+            _ = HoverAsync();
         }
 
         void IDeselectHandler.OnDeselect(BaseEventData eventData)
         {
             if (!_isRaycastInteractive || !_isInteractive) return;
-            _ = ExitAsync(true, true);
+            _ = ExitAsync();
         }
 
         void IPointerDownHandler.OnPointerDown(PointerEventData eventData)
@@ -264,24 +259,13 @@ namespace Broccollie.UI
         void IPointerUpHandler.OnPointerUp(PointerEventData eventData)
         {
             if (!_isRaycastInteractive || !_isInteractive) return;
-
-            _isPressed = false;
-            if (_isHovered)
-            {
-                _ = this.ExecuteBehaviorAsync(UIStates.Hover, false, false);
-                return;
-            }
-
-            if (IsSelected)
-                _ = this.ExecuteBehaviorAsync(UIStates.Select, false, false);
-            else
-                _ = this.ExecuteBehaviorAsync(UIStates.Default, false, false);
+            _ = ReleaseAsync();
         }
 
         void IPointerClickHandler.OnPointerClick(PointerEventData eventData)
         {
             if (!_isRaycastInteractive || !_isInteractive) return;
-            _ = SelectAsync(false, true, true);
+            _ = SelectAsync();
         }
 
         void ISubmitHandler.OnSubmit(BaseEventData eventData)
@@ -305,25 +289,50 @@ namespace Broccollie.UI
 
         #endregion
 
-        private async Task ExitAsync(bool instantChange, bool playAudio)
+        private async Task ExitAsync(bool instantChange = false, bool playAudio = true)
         {
             _isHovered = false;
             if (_isPressed) return;
 
+            await SelectOrDefaultBehavior(instantChange, playAudio, false);
+        }
+
+        private async Task ReleaseAsync(bool instantChange = false, bool playAudio = true)
+        {
+            _isPressed = false;
+            await SelectOrDefaultBehavior(instantChange, playAudio, false);
+        }
+
+        private async Task SelectOrDefaultBehavior(bool instantChange, bool playAudio, bool invokeEvent)
+        {
             bool usingFeature = _features != null && _features.Count > 0;
             if (usingFeature)
             {
+                CancelCancellationToken();
                 if (_isSelected)
-                    await this.ExecuteBehaviorAsync(UIStates.Select, instantChange, playAudio);
+                {
+                    if (usingFeature)
+                        await this.ExecuteBehaviorAsync(UIStates.Select, instantChange, playAudio);
+
+                    if (invokeEvent)
+                        OnSelect?.Invoke(new UIEventArgs { Sender = this });
+                }
                 else
-                    await this.ExecuteBehaviorAsync(UIStates.Default, instantChange, playAudio);
+                {
+                    _currentState = UIStates.Default;
+                    if (usingFeature)
+                        await this.ExecuteBehaviorAsync(UIStates.Default, instantChange, playAudio);
+
+                    if (invokeEvent)
+                        OnDefault?.Invoke(new UIEventArgs { Sender = this });
+                }
             }
         }
 
 #if UNITY_EDITOR
         private void OnValidate()
         {
-            ChangeUIStateEditor();
+            //ChangeUIStateEditor();
         }
 
         public override void ChangeUIStateEditor()

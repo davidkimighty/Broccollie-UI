@@ -42,7 +42,6 @@ namespace Broccollie.UI
 
             if (_features != null && _features.Count > 0)
             {
-                UIUtilities.HandleCancellation(_cts);
                 await this.ExecuteBehaviorAsync(_currentState, instantChange, playAudio);
 
                 if (state)
@@ -65,7 +64,6 @@ namespace Broccollie.UI
 
             if (_features != null && _features.Count > 0)
             {
-                UIUtilities.HandleCancellation(_cts);
                 await this.ExecuteBehaviorAsync(_currentState, instantChange, playAudio);
 
                 if (state)
@@ -83,10 +81,7 @@ namespace Broccollie.UI
             _currentState = UIStates.Default;
 
             if (_features != null && _features.Count > 0)
-            {
-                UIUtilities.HandleCancellation(_cts);
                 await this.ExecuteBehaviorAsync(UIStates.Default, instantChange, playAudio);
-            }
 
             if (invokeEvent)
                 OnDefault?.Invoke(new UIEventArgs { Sender = this });

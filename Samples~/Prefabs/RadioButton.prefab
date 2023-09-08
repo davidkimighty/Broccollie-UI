@@ -38,7 +38,6 @@ RectTransform:
   - {fileID: 435452603498151997}
   - {fileID: 4836905032317079223}
   m_Father: {fileID: 0}
-  m_RootOrder: -1
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0}
   m_AnchorMax: {x: 0, y: 0}
@@ -76,23 +75,22 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   _isEnabled: 1
-  _featureType: 0
   _elements:
   - IsEnabled: 1
     Graphic: {fileID: 193537631578630935}
-    Preset: {fileID: 11400000, guid: 008267def039e4e65be7eaf78f403db4, type: 2}
+    Preset: {fileID: 11400000, guid: ddabc4cbc69ef43d98180ff6a922d8db, type: 2}
   - IsEnabled: 1
     Graphic: {fileID: 2357576721405043476}
-    Preset: {fileID: 11400000, guid: 75437e4c85385488aa8f2a8e0b6bf909, type: 2}
+    Preset: {fileID: 11400000, guid: fb790d7b1eb4f465f9debed47f2f11b0, type: 2}
   - IsEnabled: 1
     Graphic: {fileID: 4384871394557569876}
-    Preset: {fileID: 11400000, guid: f8659625dfa6249a19055319adc1cf49, type: 2}
+    Preset: {fileID: 11400000, guid: dc9315cb1c49e407ea0efc5e2004f362, type: 2}
   - IsEnabled: 1
     Graphic: {fileID: 451601683252879064}
-    Preset: {fileID: 11400000, guid: d239cad0d49214f97b5d5838a4bf184d, type: 2}
+    Preset: {fileID: 11400000, guid: fb790d7b1eb4f465f9debed47f2f11b0, type: 2}
   - IsEnabled: 1
     Graphic: {fileID: 7760867714460987873}
-    Preset: {fileID: 11400000, guid: dbd7dd6433cc74fe4b86643464739aec, type: 2}
+    Preset: {fileID: 11400000, guid: ddabc4cbc69ef43d98180ff6a922d8db, type: 2}
 --- !u!114 &6153858085855196414
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -106,11 +104,10 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   _isEnabled: 1
-  _featureType: 1
   _eventChannel: {fileID: 11400000, guid: c12b75235224c457a9f27123958d13f9, type: 2}
   _elements:
   - IsEnabled: 1
-    Preset: {fileID: 11400000, guid: ff5ea1104ec9d429e8548297c7aa5db7, type: 2}
+    Preset: {fileID: 11400000, guid: 16650c73cdb0747f8beb2eea616f2277, type: 2}
 --- !u!114 &-5744813855372030184
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -124,11 +121,10 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   _isEnabled: 1
-  _featureType: 0
   _elements:
   - IsEnabled: 1
     Target: {fileID: 8097050677406859739}
-    Preset: {fileID: 11400000, guid: 5c4ba0e5dfc2f4eaf9a4f2a6a1950a16, type: 2}
+    Preset: {fileID: 11400000, guid: bef2bf3210e45498d9538b7737d653b4, type: 2}
 --- !u!1 &622898118618154790
 GameObject:
   m_ObjectHideFlags: 0
@@ -160,7 +156,6 @@ RectTransform:
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 8097050677406859739}
-  m_RootOrder: -1
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0}
   m_AnchorMax: {x: 1, y: 1}
@@ -236,7 +231,6 @@ RectTransform:
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 8097050677406859739}
-  m_RootOrder: -1
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0.5}
   m_AnchorMax: {x: 0, y: 0.5}
@@ -312,7 +306,6 @@ RectTransform:
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 8097050677406859739}
-  m_RootOrder: -1
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0}
   m_AnchorMax: {x: 1, y: 1}
@@ -388,7 +381,6 @@ RectTransform:
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 8097050677406859739}
-  m_RootOrder: -1
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0}
   m_AnchorMax: {x: 1, y: 1}
@@ -523,7 +515,6 @@ RectTransform:
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 8097050677406859739}
-  m_RootOrder: -1
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0.5}
   m_AnchorMax: {x: 0, y: 0.5}

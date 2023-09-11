@@ -14,6 +14,7 @@ namespace Broccollie.UI
             public bool IsEnabled;
             public UIStates ExecutionState;
             public Color TargetColor;
+            public string ColorPaletteKey;
             public float Duration;
             public AnimationCurve Curve;
         }

@@ -11,6 +11,8 @@ namespace Broccollie.UI
     [DisallowMultipleComponent]
     public class ColorUIFeature : BaseUIFeature
     {
+        [SerializeField] private bool _useColorPalette = false;
+        [SerializeField] private ColorPalette _colorPalette = null;
         [SerializeField] private Element[] _elements = null;
 
         #region Public Functions
@@ -30,9 +32,11 @@ namespace Broccollie.UI
                     if (!setting.IsEnabled) continue;
 
                     if (instantChange)
-                        features.Add(InstantColorChange(_elements[i].Graphic, setting.TargetColor, ct));
+                        features.Add(InstantColorChange(_elements[i].Graphic,
+                            _useColorPalette ? _colorPalette.GetColor(setting.ColorPaletteKey) : setting.TargetColor, ct));
                     else
-                        features.Add(_elements[i].Graphic.LerpColorAsync(setting.TargetColor, setting.Duration, ct, setting.Curve));
+                        features.Add(_elements[i].Graphic.LerpColorAsync(
+                            _useColorPalette ? _colorPalette.GetColor(setting.ColorPaletteKey) : setting.TargetColor, setting.Duration, ct, setting.Curve));
                 }
                 return features;
             }

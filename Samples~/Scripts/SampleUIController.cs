@@ -22,16 +22,16 @@ public class SampleUIController : MonoBehaviour
         _scroll.OnFocusElement += Focus;
         _scroll.OnUnfocusElement += Unfocus;
 
-        _leftButton.OnClick += (eventArgs, sender) => ChangeScrollPage(Mathf.Abs((_scrollIndex == 0 ?
+        _leftButton.OnSelect += (eventArgs) => ChangeScrollPage(Mathf.Abs((_scrollIndex == 0 ?
             _scrollIndex - _scroll.GetPageCount(s_key) + 1 : _scrollIndex - 1)) % _scroll.GetPageCount(s_key));
-        _rightButton.OnClick += (eventArgs, sender) => ChangeScrollPage(Mathf.Abs((_scrollIndex + 1)) % _scroll.GetPageCount(s_key));
+        _rightButton.OnSelect += (eventArgs) => ChangeScrollPage(Mathf.Abs((_scrollIndex + 1)) % _scroll.GetPageCount(s_key));
 
         _scroll.SelectPageWithIndex(_scrollIndex);
 
-        _toggle1.OnClick += (eventArgs, sender) => _panel1.ChangeState(UIStates.Show.ToString());
-        _toggle1.OnDefault += (eventArgs, sender) => _panel1.ChangeState(UIStates.Hide.ToString());
+        _toggle1.OnSelect += (eventArgs) => _ = _panel1.SetActiveAsync(true);
+        _toggle1.OnDefault += (eventArgs) => _ = _panel1.SetActiveAsync(false);
 
-        _panel1.ChangeState(UIStates.Hide.ToString());
+        _ = _panel1.SetActiveAsync(false);
     }
 
     private void ChangeScrollPage(int index)
@@ -41,15 +41,17 @@ public class SampleUIController : MonoBehaviour
         _title.text = _titles[index];
     }
 
-    private void Focus(BaseUI baseUI, int index)
+    private void Focus(BaseUIElement baseUI, int index)
     {
-        if (baseUI.CurrentState == UIStates.Hover.ToString()) return;
-        baseUI.ChangeState(UIStates.Hover.ToString());
+        if (baseUI.CurrentState == UIStates.Hover) return;
+        if (baseUI.TryGetComponent<IHover>(out var hover))
+            hover.HoverAsync();
     }
 
-    private void Unfocus(BaseUI baseUI, int index)
+    private void Unfocus(BaseUIElement baseUI, int index)
     {
-        if (baseUI.CurrentState == UIStates.Default.ToString()) return;
-        baseUI.ChangeState(UIStates.Default.ToString());
+        if (baseUI.CurrentState == UIStates.Default) return;
+        if (baseUI.TryGetComponent<IDefault>(out var deFault))
+            deFault.DefaultAsync();
     }
 }

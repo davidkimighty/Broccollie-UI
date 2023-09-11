@@ -9,16 +9,14 @@ MonoBehaviour:
   m_GameObject: {fileID: 0}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 2bafff9b66c9d48708e6e7e72aad7707, type: 3}
+  m_Script: {fileID: 11500000, guid: 7e4efbb931e5e4eda99c0f419622e134, type: 3}
   m_Name: AnimationPreset_Popup
   m_EditorClassIdentifier: 
   OverrideAnimator: {fileID: 22100000, guid: 138ba92f93162441ba2ce5053cc2bbeb, type: 2}
   Settings:
-  - ExecutionStateHelper: 1
-    ExecutionState: Show
-    IsEnabled: 1
+  - IsEnabled: 1
+    ExecutionState: 1
     Animation: {fileID: 7400000, guid: 6cf2beb0095994a0a8ba0c7765e22e81, type: 2}
-  - ExecutionStateHelper: 2
-    ExecutionState: Hide
-    IsEnabled: 1
+  - IsEnabled: 1
+    ExecutionState: 2
     Animation: {fileID: 7400000, guid: 706c724938ae74c1bb42f8f4cb46ff64, type: 2}

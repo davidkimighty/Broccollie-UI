@@ -9,62 +9,58 @@ namespace Broccollie.UI
 {
     public class SpriteUIFeature : BaseUIFeature
     {
-        [Header("Sprite Feature")]
         [SerializeField] private Element[] _elements = null;
 
-        protected override List<Task> GetFeatures(string state, CancellationToken ct)
+        #region Public Functions
+        public override List<Task> GetFeatures(UIStates state, bool instantChange, bool playAudio, CancellationToken ct)
         {
-            List<Task> features = new List<Task>();
-            if (_elements == null) return features;
-
-            for (int i = 0; i < _elements.Length; i++)
+            try
             {
-                if (!_elements[i].IsEnabled) continue;
+                if (_elements == null) return default;
 
-                SpriteUIPreset.SpriteSetting setting = Array.Find(_elements[i].Preset.Settings, x => x.ExecutionState == state);
-                if (setting == null || !setting.IsEnabled) continue;
+                List<Task> features = new();
+                for (int i = 0; i < _elements.Length; i++)
+                {
+                    ct.ThrowIfCancellationRequested();
+                    if (!_elements[i].IsEnabled || _elements[i].Preset == null) continue;
 
-                features.Add(SpriteSwapAsync(_elements[i].Graphic, setting, ct));
+                    SpriteUIFeaturePreset.Setting setting = Array.Find(_elements[i].Preset.Settings, x => x.ExecutionState == state);
+                    if (!setting.IsEnabled) continue;
+
+                    if (instantChange)
+                        features.Add(SpriteSwapInstantAsync(_elements[i].Graphic, setting));
+                    else
+                        features.Add(SpriteSwapAsync(_elements[i].Graphic, setting, ct));
+                }
+                return features;
             }
-            return features;
+            catch (OperationCanceledException)
+            {
+                return default;
+            }
         }
 
-        protected override List<Action> GetFeaturesInstant(string state)
-        {
-            List<Action> features = new List<Action>();
-            if (_elements == null) return features;
+        #endregion
 
-            for (int i = 0; i < _elements.Length; i++)
-            {
-                if (!_elements[i].IsEnabled) continue;
-
-                SpriteUIPreset.SpriteSetting setting = Array.Find(_elements[i].Preset.Settings, x => x.ExecutionState == state);
-                if (setting == null || !setting.IsEnabled) continue;
-
-                int index = i;
-                features.Add(() => SpriteSwapInstant(_elements[index].Graphic, setting));
-            }
-            return features;
-        }
-
-        private async Task SpriteSwapAsync(Image image, SpriteUIPreset.SpriteSetting setting, CancellationToken ct)
+        private async Task SpriteSwapAsync(Image image, SpriteUIFeaturePreset.Setting setting, CancellationToken ct)
         {
             if (setting.Delay > 0)
                 await Task.Delay((int)(setting.Delay * 1000f), ct);
             image.sprite = setting.Sprite;
         }
 
-        private void SpriteSwapInstant(Image image, SpriteUIPreset.SpriteSetting setting)
+        private async Task SpriteSwapInstantAsync(Image image, SpriteUIFeaturePreset.Setting setting)
         {
             image.sprite = setting.Sprite;
+            await Task.Yield();
         }
 
         [Serializable]
-        public class Element
+        public struct Element
         {
             public bool IsEnabled;
             public Image Graphic;
-            public SpriteUIPreset Preset;
+            public SpriteUIFeaturePreset Preset;
         }
     }
 }

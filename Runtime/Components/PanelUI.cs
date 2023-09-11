@@ -1,16 +1,27 @@
 using System;
 using System.Collections.Generic;
+using System.Threading.Tasks;
 using UnityEngine;
 
 namespace Broccollie.UI
 {
-    [DefaultExecutionOrder(-120)]
-    public class PanelUI : BaseUI
+    public class PanelUI : BaseUIElement, IActive, IInteractive, IDefault
     {
-        private static List<BaseUI> s_activePanels = new List<BaseUI>();
+        private static readonly List<BaseUIElement> s_activePanels = new();
 
-        [Header("Panel")]
-        [SerializeField] private GameObject _panel = null;
+        public event Action<UIEventArgs> OnActive;
+        public event Action<UIEventArgs> OnInActive;
+        public event Action<UIEventArgs> OnInteractive;
+        public event Action<UIEventArgs> OnNonInteractive;
+        public event Action<UIEventArgs> OnDefault;
+
+        [SerializeField] private GameObject _panel;
+
+        private bool _isInteractive = true;
+        public bool IsInteractive
+        {
+            get => _isInteractive;
+        }
 
         private void OnEnable()
         {
@@ -23,137 +34,92 @@ namespace Broccollie.UI
         }
 
         #region Public Functions
-        public override void ChangeState(string state, bool instant = false, bool playAudio = true, bool invokeEvent = true)
+        public async Task SetActiveAsync(bool state, bool instantChange = false, bool playAudio = false, bool invokeEvent = false)
         {
-            if (Enum.TryParse(state, out UIStates uiState))
+            if (state)
+                _panel.SetActive(true);
+            _currentState = state ? UIStates.Active : UIStates.InActive;
+
+            if (_features != null && _features.Count > 0)
             {
-                switch (uiState)
-                {
-                    case UIStates.Default:
-                        Default(playAudio, invokeEvent);
-                        break;
+                await this.ExecuteBehaviorAsync(_currentState, instantChange, playAudio);
 
-                    case UIStates.Interactive:
-                        Interactive(instant, playAudio, invokeEvent);
-                        break;
-
-                    case UIStates.NonInteractive:
-                        NonInteractive(instant, playAudio, invokeEvent);
-                        break;
-
-                    case UIStates.Show:
-                        Show(instant, playAudio, invokeEvent);
-                        break;
-
-                    case UIStates.Hide:
-                        Hide(instant, playAudio, invokeEvent);
-                        break;
-                }
+                if (state)
+                    await this.ExecuteBehaviorAsync(UIStates.Default, instantChange, playAudio);
             }
+
+            if (state)
+                OnActive?.Invoke(new UIEventArgs { Sender = this });
             else
             {
-
+                OnInActive?.Invoke(new UIEventArgs { Sender = this });
+                _panel.SetActive(false);
             }
         }
 
-        public override void SetActive(bool state)
+        public async Task SetInteractiveAsync(bool state, bool instantChange = false, bool playAudio = false, bool invokeEvent = false)
         {
-            _panel.SetActive(state);
+            _isInteractive = state;
+            _currentState = state ? UIStates.Interactive : UIStates.NonInteractive;
+
+            if (_features != null && _features.Count > 0)
+            {
+                await this.ExecuteBehaviorAsync(_currentState, instantChange, playAudio);
+
+                if (state)
+                    await this.ExecuteBehaviorAsync(UIStates.Default, instantChange, playAudio);
+            }
+
+            if (state)
+                OnInteractive?.Invoke(new UIEventArgs { Sender = this });
+            else
+                OnNonInteractive?.Invoke(new UIEventArgs { Sender = this });
+        }
+
+        public async Task DefaultAsync(bool instantChange = false, bool playAudio = false, bool invokeEvent = false)
+        {
+            _currentState = UIStates.Default;
+
+            if (_features != null && _features.Count > 0)
+                await this.ExecuteBehaviorAsync(UIStates.Default, instantChange, playAudio);
+
+            if (invokeEvent)
+                OnDefault?.Invoke(new UIEventArgs { Sender = this });
         }
 
         #endregion
 
-        private void Default(bool playAudio, bool invokeEvent)
+
+#if UNITY_EDITOR
+        private void OnValidate()
         {
-            if (!_isInteractive) return;
-
-            SetCurrentState(UIStates.Default, out string state);
-            _isHovered = _isPressed = _isClicked = false;
-
-            if (invokeEvent)
-                RaiseOnDefault(this, null);
-
-            _featureTasks = ExecuteFeaturesAsync(state, playAudio);
+            ChangeUIStateEditor();
         }
 
-        private void Interactive(bool instant, bool playAudio, bool invokeEvent)
+        public override void ChangeUIStateEditor()
         {
-            SetCurrentState(UIStates.Interactive, out string state);
-            SetActive(true);
-
-            if (invokeEvent)
-                RaiseOnInteractive(this, null);
-
-            if (instant) { }
-            else
+            switch (_currentState)
             {
-                _featureTasks = ExecuteFeaturesAsync(state, playAudio, () =>
-                {
+                case UIStates.InActive:
+                    _ = this.ExecuteBehaviorAsync(UIStates.InActive, true, false);
+                    gameObject.SetActive(false);
+                    break;
+
+                case UIStates.NonInteractive:
+                    _isInteractive = false;
+                    _ = this.ExecuteBehaviorAsync(UIStates.NonInteractive, true, false);
+                    gameObject.SetActive(true);
+                    break;
+
+                case UIStates.Default:
                     _isInteractive = true;
-                    Default(playAudio, invokeEvent);
-                });
+                    _ = this.ExecuteBehaviorAsync(UIStates.Default, true, false);
+                    gameObject.SetActive(true);
+                    break;
+
             }
+            UnityEditor.EditorUtility.SetDirty(this);
         }
-
-        private void NonInteractive(bool instant, bool playAudio, bool invokeEvent)
-        {
-            SetCurrentState(UIStates.NonInteractive, out string state);
-            _isInteractive = false;
-            SetActive(true);
-
-            if (invokeEvent)
-                RaiseOnInteractive(this, null);
-
-            if (instant) { }
-            else
-                _featureTasks = ExecuteFeaturesAsync(state, playAudio);
-        }
-
-        private void Show(bool instant, bool playAudio, bool invokeEvent)
-        {
-            SetCurrentState(UIStates.Show, out string state);
-            _isActive = true;
-            SetActive(true);
-
-            if (invokeEvent)
-                RaiseOnShow(this, null);
-
-            if (instant)
-                ExecuteFeatureInstant(state, playAudio);
-            else
-            {
-                _featureTasks = ExecuteFeaturesAsync(state, playAudio, () =>
-                {
-                    Default(playAudio, invokeEvent);
-                });
-            }
-        }
-
-        private void Hide(bool instant, bool playAudio, bool invokeEvent)
-        {
-            SetCurrentState(UIStates.Hide, out string state);
-            _isActive = false;
-
-            if (invokeEvent)
-                RaiseOnHide(this, null);
-
-            if (instant)
-            {
-                SetActive(false);
-                ExecuteFeatureInstant(state, playAudio);
-            }
-            else
-            {
-                _featureTasks = ExecuteFeaturesAsync(state, playAudio, () =>
-                {
-                    SetActive(false);
-                });
-            }
-        }
-    }
-
-    public class PanelUIEventArgs : EventArgs
-    {
-
+#endif
     }
 }

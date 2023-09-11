@@ -11,50 +11,55 @@ namespace Broccollie.UI
     [DisallowMultipleComponent]
     public class ColorUIFeature : BaseUIFeature
     {
-        [Header("Color Feature")]
+        [SerializeField] private bool _useColorPalette = false;
+        [SerializeField] private ColorPalette _colorPalette = null;
         [SerializeField] private Element[] _elements = null;
 
-        protected override List<Task> GetFeatures(string state, CancellationToken ct)
+        #region Public Functions
+        public override List<Task> GetFeatures(UIStates state, bool instantChange, bool playAudio, CancellationToken ct)
         {
-            List<Task> features = new List<Task>();
-            if (_elements == null) return features;
-
-            for (int i = 0; i < _elements.Length; i++)
+            try
             {
-                if (!_elements[i].IsEnabled || _elements[i].Preset == null) continue;
+                if (_elements == null) return default;
 
-                ColorUIPreset.ColorSetting setting = Array.Find(_elements[i].Preset.Settings, x => x.ExecutionState == state);
-                if (setting == null || !setting.IsEnabled) continue;
+                List<Task> features = new List<Task>();
+                for (int i = 0; i < _elements.Length; i++)
+                {
+                    ct.ThrowIfCancellationRequested();
+                    if (!_elements[i].IsEnabled || _elements[i].Preset == null) continue;
 
-                features.Add(_elements[i].Graphic.LerpColorAsync(setting.TargetColor, setting.Duration, ct, setting.Curve));
+                    ColorUIFeaturePreset.Setting setting = Array.Find(_elements[i].Preset.Settings, x => x.ExecutionState == state);
+                    if (!setting.IsEnabled) continue;
+
+                    if (instantChange)
+                        features.Add(InstantColorChange(_elements[i].Graphic,
+                            _useColorPalette ? _colorPalette.GetColor(setting.ColorPaletteKey) : setting.TargetColor, ct));
+                    else
+                        features.Add(_elements[i].Graphic.LerpColorAsync(
+                            _useColorPalette ? _colorPalette.GetColor(setting.ColorPaletteKey) : setting.TargetColor, setting.Duration, ct, setting.Curve));
+                }
+                return features;
             }
-            return features;
+            catch (OperationCanceledException)
+            {
+                return default;
+            }
         }
 
-        protected override List<Action> GetFeaturesInstant(string state)
+        #endregion
+
+        private async Task InstantColorChange(MaskableGraphic graphic, Color color, CancellationToken ct)
         {
-            List<Action> features = new List<Action>();
-            if (_elements == null) return features;
-
-            for (int i = 0; i < _elements.Length; i++)
-            {
-                if (!_elements[i].IsEnabled || _elements[i].Preset == null) continue;
-
-                ColorUIPreset.ColorSetting setting = Array.Find(_elements[i].Preset.Settings, x => x.ExecutionState == state);
-                if (setting == null || !setting.IsEnabled) continue;
-
-                int index = i;
-                features.Add(() => _elements[index].Graphic.color = setting.TargetColor);
-            }
-            return features;
+            graphic.color = color;
+            await Task.Yield();
         }
 
         [Serializable]
-        public class Element
+        public struct Element
         {
             public bool IsEnabled;
             public MaskableGraphic Graphic;
-            public ColorUIPreset Preset;
+            public ColorUIFeaturePreset Preset;
         }
     }
 }

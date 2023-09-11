@@ -1,17 +1,47 @@
 using System;
 using System.Collections.Generic;
+using System.Threading.Tasks;
 using UnityEngine;
 using UnityEngine.EventSystems;
 
 namespace Broccollie.UI
 {
-    [DefaultExecutionOrder(-120)]
-    public class ButtonUI : BaseUI
+    public class ButtonUI : BaseUIElement, IActive, IInteractive, IDefault, IHover, IPress, ISelect, INavigate
     {
-        private static List<BaseUI> s_activeButtons = new List<BaseUI>();
+        private static readonly List<BaseUIElement> s_activeButtons = new();
 
-        [Header("Button")]
+        public event Action<UIEventArgs> OnActive;
+        public event Action<UIEventArgs> OnInActive;
+        public event Action<UIEventArgs> OnInteractive;
+        public event Action<UIEventArgs> OnNonInteractive;
+        public event Action<UIEventArgs> OnDefault;
+        public event Action<UIEventArgs> OnHover;
+        public event Action<UIEventArgs> OnPress;
+        public event Action<UIEventArgs> OnSelect;
+        public event Action<UIEventArgs, MoveDirection> OnNavigate;
+
         [SerializeField] private ButtonTypes _buttonType = ButtonTypes.Button;
+
+        private bool _isInteractive = true;
+        public bool IsInteractive
+        {
+            get => _isInteractive;
+        }
+        private bool _isHovered = false;
+        public bool IsHovered
+        {
+            get => _isHovered;
+        }
+        private bool _isPressed = false;
+        public bool IsPressed
+        {
+            get => _isPressed;
+        }
+        private bool _isSelected = false;
+        public bool IsSelected
+        {
+            get => IsSelected;
+        }
 
         private void OnEnable()
         {
@@ -24,317 +54,333 @@ namespace Broccollie.UI
         }
 
         #region Public Functions
-        public override void ChangeState(string state, bool instant = false, bool playAudio = true, bool invokeEvent = true)
+        public async Task SetActiveAsync(bool state, bool instantChange = false, bool playAudio = true, bool invokeEvent = true)
         {
-            if (Enum.TryParse(state, out UIStates uiState))
+            if (state)
+                gameObject.SetActive(true);
+            _currentState = state ? UIStates.Active : UIStates.InActive;
+
+            if (_features != null && _features.Count > 0)
             {
-                switch (uiState)
-                {
-                    case UIStates.Default:
-                        Default(playAudio, invokeEvent);
-                        break;
-
-                    case UIStates.Interactive:
-                        Interactive(instant, playAudio, invokeEvent);
-                        break;
-
-                    case UIStates.NonInteractive:
-                        NonInteractive(instant, playAudio, invokeEvent);
-                        break;
-
-                    case UIStates.Show:
-                        Show(instant, playAudio, invokeEvent);
-                        break;
-
-                    case UIStates.Hide:
-                        Hide(instant, playAudio, invokeEvent);
-                        break;
-
-                    case UIStates.Hover:
-                        Hover(playAudio, invokeEvent);
-                        break;
-
-                    case UIStates.Press:
-                        Press(null, playAudio, invokeEvent);
-                        break;
-
-                    case UIStates.Click:
-                        Click(playAudio, invokeEvent);
-                        break;
-                }
+                CancelCancellationToken();
+                await this.ExecuteBehaviorAsync(_currentState, instantChange, playAudio);
+                if (state)
+                    await this.ExecuteBehaviorAsync(UIStates.Default, instantChange, playAudio);
             }
-            else
-                CustomState(state, playAudio, invokeEvent);
-        }
 
-        public override void SetActive(bool state)
-        {
-            gameObject.SetActive(state);
-        }
-
-        #endregion
-
-        #region Pointer Callback Subscribers
-        protected override void InvokePointerEnter(PointerEventData eventData, BaseUI invoker) => Hover(true, true);
-
-        protected override void InvokePointerExit(PointerEventData eventData, BaseUI invoker) => Exit();
-
-        protected override void InvokePointerDown(PointerEventData eventData, BaseUI invoker) => Press(eventData, true, true);
-
-        protected override void InvokePointerUp(PointerEventData eventData, BaseUI invoker) => Release();
-
-        protected override void InvokePointerClick(PointerEventData eventData, BaseUI invoker) => Click(true, true);
-
-        protected override void InvokeMove(AxisEventData eventData, BaseUI invoker, List<BaseUI> activeList)
-        {
-            base.InvokeMove(eventData, this, s_activeButtons);
-        }
-
-        protected override void InvokeSelect(BaseEventData eventData, BaseUI invoker) => Hover(true, true);
-
-        protected override void InvokeDeselect(BaseEventData eventData, BaseUI invoker) => Exit();
-
-        protected override void InvokeSubmit(BaseEventData eventData, BaseUI invoker)
-        {
-            Click(true, true);
-
-            if (!_isRaycastIgnored)
-                ButtonSubmitVisuals();
-
-            void ButtonSubmitVisuals()
-            {
-                if (!_isInteractive) return;
-                if (_isInteractive && _buttonType == ButtonTypes.Button)
-                {
-                    _featureTasks = ExecuteFeaturesAsync(UIStates.Press.ToString(), true, () =>
-                    {
-                        Default(false, true);
-                    });
-                }
-            }
-        }
-
-        #endregion
-
-        private void Default(bool playAudio, bool invokeEvent)
-        {
-            if (!_isInteractive) return;
-
-            SetCurrentState(UIStates.Default, out string state);
-            _isHovered = _isPressed = _isClicked = false;
-
-            if (invokeEvent)
-                RaiseOnDefault(this, null);
-
-            _featureTasks = ExecuteFeaturesAsync(state, playAudio);
-        }
-
-        private void Interactive(bool instant, bool playAudio, bool invokeEvent)
-        {
-            SetCurrentState(UIStates.Interactive, out string state);
-            SetActive(true);
-
-            if (invokeEvent)
-                RaiseOnInteractive(this, null);
-
-            if (instant) { }
+            if (state)
+                OnActive?.Invoke(new UIEventArgs { Sender = this });
             else
             {
-                _featureTasks = ExecuteFeaturesAsync(state, playAudio, () =>
-                {
-                    _isInteractive = true;
-                    Default(playAudio, invokeEvent);
-                });
+                OnInActive?.Invoke(new UIEventArgs { Sender = this });
+                gameObject.SetActive(false);
             }
         }
 
-        private void NonInteractive(bool instant, bool playAudio, bool invokeEvent)
+        public async Task SetInteractiveAsync(bool state, bool instantChange = false, bool playAudio = true, bool invokeEvent = true)
         {
-            SetCurrentState(UIStates.NonInteractive, out string state);
-            _isInteractive = false;
-            SetActive(true);
+            _isInteractive = state;
+            _currentState = state ? UIStates.Interactive : UIStates.NonInteractive;
+
+            if (_features != null && _features.Count > 0)
+            {
+                CancelCancellationToken();
+                await this.ExecuteBehaviorAsync(_currentState, instantChange, playAudio);
+                if (state)
+                    await this.ExecuteBehaviorAsync(UIStates.Default, instantChange, playAudio);
+            }
+
+            if (state)
+                OnInteractive?.Invoke(new UIEventArgs { Sender = this });
+            else
+                OnNonInteractive?.Invoke(new UIEventArgs { Sender = this });
+        }
+
+        public async Task DefaultAsync(bool instantChange = false, bool playAudio = true, bool invokeEvent = true)
+        {
+            _isSelected = false;
+            _currentState = UIStates.Default;
+
+            if (_features != null && _features.Count > 0)
+            {
+                CancelCancellationToken();
+                await this.ExecuteBehaviorAsync(UIStates.Default, instantChange, playAudio);
+            }
 
             if (invokeEvent)
-                RaiseOnInteractive(this, null);
-
-            if (instant) { }
-            else
-                _featureTasks = ExecuteFeaturesAsync(state, playAudio);
+                OnDefault?.Invoke(new UIEventArgs { Sender = this });
         }
 
-        private void Show(bool instant, bool playAudio, bool invokeEvent)
+        public async Task HoverAsync(bool instantChange = false, bool playAudio = true, bool invokeEvent = true)
         {
-            SetCurrentState(UIStates.Show, out string state);
-            _isActive = true;
-            SetActive(true);
-
-            if (invokeEvent)
-                RaiseOnShow(this, null);
-
-            if (instant)
-                ExecuteFeatureInstant(state, playAudio);
-            else
-            {
-                _featureTasks = ExecuteFeaturesAsync(state, playAudio, () =>
-                {
-                    Default(playAudio, invokeEvent);
-                });
-            }
-        }
-
-        private void Hide(bool instant, bool playAudio, bool invokeEvent)
-        {
-            SetCurrentState(UIStates.Hide, out string state);
-            _isActive = false;
-
-            if (invokeEvent)
-                RaiseOnHide(this, null);
-
-            if (instant)
-            {
-                ExecuteFeatureInstant(state, playAudio);
-                SetActive(false);
-            }
-            else
-            {
-                _featureTasks = ExecuteFeaturesAsync(state, playAudio, () =>
-                {
-                    SetActive(false);
-                });
-            }
-        }
-
-        private void Hover(bool playAudio, bool invokeEvent)
-        {
-            if (_isRaycastIgnored || !_isInteractive) return;
-
-            SetCurrentState(UIStates.Hover, out string state);
             _isHovered = true;
+            _currentState = UIStates.Hover;
+
+            if (_features != null && _features.Count > 0)
+            {
+                CancelCancellationToken();
+                await this.ExecuteBehaviorAsync(UIStates.Hover, instantChange, playAudio);
+            }
 
             if (invokeEvent)
-                RaiseOnHover(this, null);
-
-            _featureTasks = ExecuteFeaturesAsync(state, playAudio);
+                OnHover?.Invoke(new UIEventArgs { Sender = this });
         }
 
-        private void Press(PointerEventData eventData, bool playAudio, bool invokeEvent)
+        public async Task PressAsync(bool instantChange = false, bool playAudio = true, bool invokeEvent = true)
         {
-            if (_isRaycastIgnored || !_isInteractive) return;
+            _currentState = UIStates.Press;
 
-            if (eventData != null)
-                EventSystem.current.SetSelectedGameObject(gameObject, eventData);
-
-            SetCurrentState(UIStates.Press, out string state);
-            _isPressed = true;
+            if (_features != null && _features.Count > 0)
+            {
+                CancelCancellationToken();
+                await this.ExecuteBehaviorAsync(UIStates.Press, instantChange, playAudio);
+            }
 
             if (invokeEvent)
-                RaiseOnPress(this, null);
-
-            _featureTasks = ExecuteFeaturesAsync(state, playAudio);
+                OnPress?.Invoke(new UIEventArgs { Sender = this });
         }
 
-        private void Click(bool playAudio, bool invokeEvent)
+        public async Task SelectAsync(bool instantChange = false, bool playAudio = true, bool invokeEvent = true)
         {
-            if (_isRaycastIgnored || !_isInteractive) return;
-
             switch (_buttonType)
             {
                 case ButtonTypes.Button:
-                    if (invokeEvent)
-                        RaiseOnClick(this, null);
+                    ButtonBehavior();
                     break;
 
                 case ButtonTypes.Checkbox:
-                    _isClicked = !_isClicked;
-                    if (_isClicked)
-                    {
-                        SetCurrentState(UIStates.Click, out string checkboxState);
-                        if (invokeEvent)
-                            RaiseOnClick(this, null);
-
-                        _featureTasks = ExecuteFeaturesAsync(checkboxState, playAudio);
-                    }
-                    else
-                    {
-                        SetCurrentState(UIStates.Default, out string checkboxState);
-                        if (invokeEvent)
-                            RaiseOnDefault(this, null);
-
-                        _featureTasks = ExecuteFeaturesAsync(checkboxState, playAudio);
-                    }
+                    await CheckboxBehaviorAsync();
                     break;
 
                 case ButtonTypes.Radio:
-                    _isClicked = true;
-                    SetCurrentState(UIStates.Click, out string radioState);
-                    if (invokeEvent)
-                        RaiseOnClick(this, null);
-
-                    _featureTasks = ExecuteFeaturesAsync(radioState, playAudio);
+                    await RadioButtonBehaviorAsync();
                     break;
+            }
+
+            void ButtonBehavior()
+            {
+                if (invokeEvent)
+                    OnSelect?.Invoke(new UIEventArgs { Sender = this });
+            }
+
+            async Task CheckboxBehaviorAsync()
+            {
+                bool usingFeature = _features != null && _features.Count > 0;
+                if (usingFeature)
+                    CancelCancellationToken();
+
+                _isSelected = !_isSelected;
+                if (_isSelected)
+                {
+                    _currentState = UIStates.Select;
+                    if (usingFeature)
+                        await this.ExecuteBehaviorAsync(UIStates.Select, instantChange, playAudio);
+
+                    if (invokeEvent)
+                        OnSelect?.Invoke(new UIEventArgs { Sender = this });
+                }
+                else
+                {
+                    _currentState = UIStates.Default;
+                    if (usingFeature)
+                        await this.ExecuteBehaviorAsync(UIStates.Default, instantChange, playAudio);
+
+                    if (invokeEvent)
+                        OnDefault?.Invoke(new UIEventArgs { Sender = this });
+                }
+            }
+
+            async Task RadioButtonBehaviorAsync()
+            {
+                if (_isSelected) return;
+                _isSelected = true;
+                _currentState = UIStates.Select;
+
+                if (_features != null && _features.Count > 0)
+                {
+                    CancelCancellationToken();
+                    await this.ExecuteBehaviorAsync(UIStates.Select, instantChange, playAudio);
+                }
+
+                if (invokeEvent)
+                    OnSelect?.Invoke(new UIEventArgs { Sender = this });
             }
         }
 
-        private void Exit()
+        public void Navigate(MoveDirection direction, bool invokeEvent = false)
         {
-            if (_isRaycastIgnored || !_isInteractive) return;
+            this.MoveToNextSelectable(new(EventSystem.current) { moveDir = direction }, s_activeButtons);
 
+            if (invokeEvent)
+                OnNavigate?.Invoke(new UIEventArgs { Sender = this }, direction);
+        }
+
+        public void Navigate(AxisEventData eventData, bool invokeEvent = false)
+        {
+            this.MoveToNextSelectable(eventData, s_activeButtons);
+
+            if (invokeEvent)
+                OnNavigate?.Invoke(new UIEventArgs { Sender = this }, eventData.moveDir);
+        }
+
+        #endregion
+
+        #region Pointer Callbacks
+        void IPointerEnterHandler.OnPointerEnter(PointerEventData eventData)
+        {
+            if (!_isRaycastInteractive || !_isInteractive) return;
+            _ = HoverAsync();
+        }
+
+        void IPointerExitHandler.OnPointerExit(PointerEventData eventData)
+        {
+            if (!_isRaycastInteractive || !_isInteractive) return;
+            _ = ExitAsync();
+        }
+
+        void ISelectHandler.OnSelect(BaseEventData eventData)
+        {
+            if (!_isRaycastInteractive || !_isInteractive) return;
+            _ = HoverAsync();
+        }
+
+        void IDeselectHandler.OnDeselect(BaseEventData eventData)
+        {
+            if (!_isRaycastInteractive || !_isInteractive) return;
+            _ = ExitAsync();
+        }
+
+        void IPointerDownHandler.OnPointerDown(PointerEventData eventData)
+        {
+            if (!_isRaycastInteractive || !_isInteractive) return;
+            _ = PressAsync();
+        }
+
+        void IPointerUpHandler.OnPointerUp(PointerEventData eventData)
+        {
+            if (!_isRaycastInteractive || !_isInteractive) return;
+            _ = ReleaseAsync();
+        }
+
+        void IPointerClickHandler.OnPointerClick(PointerEventData eventData)
+        {
+            if (!_isRaycastInteractive || !_isInteractive) return;
+            _ = SelectAsync();
+        }
+
+        void ISubmitHandler.OnSubmit(BaseEventData eventData)
+        {
+            if (!_isRaycastInteractive || !_isInteractive) return;
+            Select2Default();
+
+            async void Select2Default()
+            {
+                await SelectAsync(false, true, true);
+                if (_buttonType == ButtonTypes.Button)
+                    await DefaultAsync();
+            }
+        }
+
+        void IMoveHandler.OnMove(AxisEventData eventData)
+        {
+            if (!_isRaycastInteractive || !_isInteractive) return;
+            Navigate(eventData);
+        }
+
+        #endregion
+
+        private async Task ExitAsync(bool instantChange = false, bool playAudio = true)
+        {
             _isHovered = false;
             if (_isPressed) return;
 
-            if (_isClicked)
-            {
-                SetCurrentState(UIStates.Click, out string state);
-                _featureTasks = ExecuteFeaturesAsync(state, false);
-            }
-            else
-            {
-                SetCurrentState(UIStates.Default, out string state);
-                _featureTasks = ExecuteFeaturesAsync(state, false);
-            }
+            await SelectOrDefaultBehavior(instantChange, playAudio, false);
         }
 
-        private void Release()
+        private async Task ReleaseAsync(bool instantChange = false, bool playAudio = true)
         {
-            if (_isRaycastIgnored || !_isInteractive) return;
-
             _isPressed = false;
-            if (_isHovered)
-            {
-                SetCurrentState(UIStates.Hover, out string state);
-                _featureTasks = ExecuteFeaturesAsync(state, false);
-                return;
-            }
-
-            if (_isClicked)
-            {
-                SetCurrentState(UIStates.Click, out string state);
-                _featureTasks = ExecuteFeaturesAsync(state, false);
-            }
-            else
-            {
-                SetCurrentState(UIStates.Default, out string state);
-                _featureTasks = ExecuteFeaturesAsync(state, false);
-            }
+            await SelectOrDefaultBehavior(instantChange, playAudio, false);
         }
 
-        private void CustomState(string state, bool playAudio, bool invokeEvent)
+        private async Task SelectOrDefaultBehavior(bool instantChange, bool playAudio, bool invokeEvent)
         {
-            if (_isRaycastIgnored || !_isInteractive) return;
+            bool usingFeature = _features != null && _features.Count > 0;
+            if (usingFeature)
+            {
+                CancelCancellationToken();
+                if (_isSelected)
+                {
+                    if (usingFeature)
+                        await this.ExecuteBehaviorAsync(UIStates.Select, instantChange, playAudio);
 
-            _currentState = state;
-            _isHovered = _isPressed = _isClicked = false;
+                    if (invokeEvent)
+                        OnSelect?.Invoke(new UIEventArgs { Sender = this });
+                }
+                else
+                {
+                    _currentState = UIStates.Default;
+                    if (usingFeature)
+                        await this.ExecuteBehaviorAsync(UIStates.Default, instantChange, playAudio);
 
-            if (invokeEvent)
-                RaiseOnCustomState(this, null);
-
-            _featureTasks = ExecuteFeaturesAsync(state, playAudio);
+                    if (invokeEvent)
+                        OnDefault?.Invoke(new UIEventArgs { Sender = this });
+                }
+            }
         }
-    }
 
-    public class ButtonUIEventArgs : EventArgs
-    {
+#if UNITY_EDITOR
+        private void OnValidate()
+        {
+            //ChangeUIStateEditor();
+        }
 
+        public override void ChangeUIStateEditor()
+        {
+            switch (_currentState)
+            {
+                case UIStates.InActive:
+                    _isHovered = _isPressed = _isSelected = false;
+                    _ = this.ExecuteBehaviorAsync(UIStates.InActive, true, false);
+                    gameObject.SetActive(false);
+                    break;
+
+                case UIStates.NonInteractive:
+                    _isInteractive = _isHovered = _isPressed = _isSelected = false;
+                    _ = this.ExecuteBehaviorAsync(UIStates.NonInteractive, true, false);
+                    gameObject.SetActive(true);
+                    break;
+
+                case UIStates.Default:
+                    _isHovered = _isPressed = _isSelected = false;
+                    _ = this.ExecuteBehaviorAsync(UIStates.Default, true, false);
+                    gameObject.SetActive(true);
+                    break;
+
+                case UIStates.Hover:
+                    _isHovered = true;
+                    _isPressed = _isSelected = false;
+                    _ = this.ExecuteBehaviorAsync(UIStates.Hover, true, false);
+                    gameObject.SetActive(true);
+                    break;
+
+                case UIStates.Press:
+                    _isPressed = true;
+                    _isHovered = _isSelected = false;
+                    _ = this.ExecuteBehaviorAsync(UIStates.Press, true, false);
+                    gameObject.SetActive(true);
+                    break;
+
+                case UIStates.Select:
+                    _isSelected = true;
+                    _isHovered = _isPressed = false;
+                    _ = this.ExecuteBehaviorAsync(UIStates.Select, true, false);
+                    gameObject.SetActive(true);
+                    break;
+            }
+            UnityEditor.EditorUtility.SetDirty(this);
+        }
+#endif
     }
 
     public enum ButtonTypes { Button, Checkbox, Radio }

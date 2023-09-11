@@ -33,13 +33,13 @@ public class IpodController : MonoBehaviour
         _scroll.OnFocusElement += Focus;
         _scroll.OnUnfocusElement += Unfocus;
 
-        _backButton.OnClick += (sender, args) => ChangeMusicByDir(false);
-        _forwardButton.OnClick += (sender, args) => ChangeMusicByDir(true);
+        _backButton.OnSelect += (args) => ChangeMusicByDir(false);
+        _forwardButton.OnSelect += (args) => ChangeMusicByDir(true);
     }
 
     private void Start()
     {
-        _forwardButton.ChangeState(UIStates.Click.ToString(), false, false);
+        _ = _forwardButton.SelectAsync();
     }
 
     #region Subscribers
@@ -55,19 +55,21 @@ public class IpodController : MonoBehaviour
         await ZoomAsync(color, 1);
     }
 
-    private void Focus(BaseUI baseUI, int index)
+    private void Focus(BaseUIElement baseUI, int index)
     {
         _index = index;
-        if (baseUI.CurrentState == UIStates.Hover.ToString()) return;
+        if (baseUI.CurrentState == UIStates.Hover) return;
 
-        baseUI.ChangeState(UIStates.Hover.ToString());
+        if (baseUI.TryGetComponent<IHover>(out var hover))
+            hover.HoverAsync();
     }
 
-    private void Unfocus(BaseUI baseUI, int index)
+    private void Unfocus(BaseUIElement baseUI, int index)
     {
-        if (baseUI.CurrentState == UIStates.Default.ToString()) return;
+        if (baseUI.CurrentState == UIStates.Default) return;
 
-        baseUI.ChangeState(UIStates.Default.ToString());
+        if (baseUI.TryGetComponent<IDefault>(out var deFault))
+            deFault.DefaultAsync();
     }
 
     private void ChangeMusicByDir(bool forward)
@@ -90,7 +92,7 @@ public class IpodController : MonoBehaviour
             {
                 _edgeHighlight.LerpColorAsync(targetColor, _zoomDuration, _cts.Token, _zoomCurve)
             };
-            foreach (BaseUI ui in _scroll.ScrollElements)
+            foreach (BaseUIElement ui in _scroll.ScrollElements)
                 zoomTasks.Add(ui.transform.LerpScaleAsync(Vector3.one * targetScale, _zoomDuration, _cts.Token, _zoomCurve));
 
             await Task.WhenAll(zoomTasks);

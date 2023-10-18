@@ -1,6 +1,6 @@
 {
-  "name": "com.hyunwookimbob.broccollie.ui",
-  "version": "0.1.1",
+  "name": "com.davidkimighty.broccollie.ui",
+  "version": "0.1.2",
   "displayName": "Broccollie UI",
   "description": "UI components based on scriptable objects.",
   "unity": "2022.3",

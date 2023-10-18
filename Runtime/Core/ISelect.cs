@@ -4,7 +4,7 @@ using UnityEngine.EventSystems;
 
 namespace Broccollie.UI
 {
-    public interface ISelect : IPointerClickHandler, ISubmitHandler
+    public interface ISelect : IPointerClickHandler
     {
         public event Action<UIEventArgs> OnSelect;
 

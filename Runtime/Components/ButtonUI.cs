@@ -18,7 +18,8 @@ namespace Broccollie.UI
         public event Action<UIEventArgs> OnHover;
         public event Action<UIEventArgs> OnPress;
         public event Action<UIEventArgs> OnSelect;
-        public event Action<UIEventArgs, MoveDirection> OnNavigate;
+        public event Action<UIEventArgs, MoveDirection> OnNavigateMove;
+        public event Action<UIEventArgs> OnNavigateSubmit;
 
         [SerializeField] private ButtonTypes _buttonType = ButtonTypes.Button;
 
@@ -145,66 +146,31 @@ namespace Broccollie.UI
             switch (_buttonType)
             {
                 case ButtonTypes.Button:
-                    ButtonBehavior();
+                    ButtonBehavior(invokeEvent);
                     break;
 
                 case ButtonTypes.Checkbox:
-                    await CheckboxBehaviorAsync();
+                    await CheckboxBehaviorAsync(instantChange, playAudio, invokeEvent);
                     break;
 
                 case ButtonTypes.Radio:
-                    await RadioButtonBehaviorAsync();
+                    await RadioButtonBehaviorAsync(instantChange, playAudio, invokeEvent);
                     break;
             }
+        }
 
-            void ButtonBehavior()
-            {
-                if (invokeEvent)
-                    OnSelect?.Invoke(new UIEventArgs { Sender = this });
-            }
+        public async Task ExitAsync(bool instantChange = false, bool playAudio = true)
+        {
+            _isHovered = false;
+            if (_isPressed) return;
 
-            async Task CheckboxBehaviorAsync()
-            {
-                bool usingFeature = _features != null && _features.Count > 0;
-                if (usingFeature)
-                    CancelCancellationToken();
+            await SelectOrDefault(instantChange, playAudio, false);
+        }
 
-                _isSelected = !_isSelected;
-                if (_isSelected)
-                {
-                    _currentState = UIStates.Select;
-                    if (usingFeature)
-                        await this.ExecuteBehaviorAsync(UIStates.Select, instantChange, playAudio);
-
-                    if (invokeEvent)
-                        OnSelect?.Invoke(new UIEventArgs { Sender = this });
-                }
-                else
-                {
-                    _currentState = UIStates.Default;
-                    if (usingFeature)
-                        await this.ExecuteBehaviorAsync(UIStates.Default, instantChange, playAudio);
-
-                    if (invokeEvent)
-                        OnDefault?.Invoke(new UIEventArgs { Sender = this });
-                }
-            }
-
-            async Task RadioButtonBehaviorAsync()
-            {
-                if (_isSelected) return;
-                _isSelected = true;
-                _currentState = UIStates.Select;
-
-                if (_features != null && _features.Count > 0)
-                {
-                    CancelCancellationToken();
-                    await this.ExecuteBehaviorAsync(UIStates.Select, instantChange, playAudio);
-                }
-
-                if (invokeEvent)
-                    OnSelect?.Invoke(new UIEventArgs { Sender = this });
-            }
+        public async Task ReleaseAsync(bool instantChange = false, bool playAudio = true)
+        {
+            _isPressed = false;
+            await SelectOrDefault(instantChange, playAudio, false);
         }
 
         public void Navigate(MoveDirection direction, bool invokeEvent = false)
@@ -212,7 +178,7 @@ namespace Broccollie.UI
             this.MoveToNextSelectable(new(EventSystem.current) { moveDir = direction }, s_activeButtons);
 
             if (invokeEvent)
-                OnNavigate?.Invoke(new UIEventArgs { Sender = this }, direction);
+                OnNavigateMove?.Invoke(new UIEventArgs { Sender = this }, direction);
         }
 
         public void Navigate(AxisEventData eventData, bool invokeEvent = false)
@@ -220,65 +186,70 @@ namespace Broccollie.UI
             this.MoveToNextSelectable(eventData, s_activeButtons);
 
             if (invokeEvent)
-                OnNavigate?.Invoke(new UIEventArgs { Sender = this }, eventData.moveDir);
+                OnNavigateMove?.Invoke(new UIEventArgs { Sender = this }, eventData.moveDir);
+        }
+
+        public async Task SubmitAsync(bool instantChange = false, bool playAudio = true, bool invokeEvent = true)
+        {
+            switch (_buttonType)
+            {
+                case ButtonTypes.Button:
+                    ButtonBehavior(invokeEvent);
+                    break;
+
+                case ButtonTypes.Checkbox:
+                    await CheckboxBehaviorAsync(instantChange, playAudio, invokeEvent);
+                    break;
+
+                case ButtonTypes.Radio:
+                    await RadioButtonBehaviorAsync(instantChange, playAudio, invokeEvent);
+                    break;
+            }
         }
 
         #endregion
 
         #region Pointer Callbacks
-        void IPointerEnterHandler.OnPointerEnter(PointerEventData eventData)
+        async void IPointerEnterHandler.OnPointerEnter(PointerEventData eventData)
         {
             if (!_isRaycastInteractive || !_isInteractive) return;
-            _ = HoverAsync();
+            await HoverAsync();
         }
 
-        void IPointerExitHandler.OnPointerExit(PointerEventData eventData)
+        async void IPointerExitHandler.OnPointerExit(PointerEventData eventData)
         {
             if (!_isRaycastInteractive || !_isInteractive) return;
-            _ = ExitAsync();
+            await ExitAsync();
         }
 
-        void ISelectHandler.OnSelect(BaseEventData eventData)
+        async void ISelectHandler.OnSelect(BaseEventData eventData)
         {
             if (!_isRaycastInteractive || !_isInteractive) return;
-            _ = HoverAsync();
+            await HoverAsync();
         }
 
-        void IDeselectHandler.OnDeselect(BaseEventData eventData)
+        async void IDeselectHandler.OnDeselect(BaseEventData eventData)
         {
             if (!_isRaycastInteractive || !_isInteractive) return;
-            _ = ExitAsync();
+            await ExitAsync();
         }
 
-        void IPointerDownHandler.OnPointerDown(PointerEventData eventData)
+        async void IPointerDownHandler.OnPointerDown(PointerEventData eventData)
         {
             if (!_isRaycastInteractive || !_isInteractive) return;
-            _ = PressAsync();
+            await PressAsync();
         }
 
-        void IPointerUpHandler.OnPointerUp(PointerEventData eventData)
+        async void IPointerUpHandler.OnPointerUp(PointerEventData eventData)
         {
             if (!_isRaycastInteractive || !_isInteractive) return;
-            _ = ReleaseAsync();
+            await ReleaseAsync();
         }
 
-        void IPointerClickHandler.OnPointerClick(PointerEventData eventData)
+        async void IPointerClickHandler.OnPointerClick(PointerEventData eventData)
         {
             if (!_isRaycastInteractive || !_isInteractive) return;
-            _ = SelectAsync();
-        }
-
-        void ISubmitHandler.OnSubmit(BaseEventData eventData)
-        {
-            if (!_isRaycastInteractive || !_isInteractive) return;
-            Select2Default();
-
-            async void Select2Default()
-            {
-                await SelectAsync(false, true, true);
-                if (_buttonType == ButtonTypes.Button)
-                    await DefaultAsync();
-            }
+            await SelectAsync();
         }
 
         void IMoveHandler.OnMove(AxisEventData eventData)
@@ -287,23 +258,22 @@ namespace Broccollie.UI
             Navigate(eventData);
         }
 
+        async void ISubmitHandler.OnSubmit(BaseEventData eventData)
+        {
+            if (!_isRaycastInteractive || !_isInteractive) return;
+            await Submit2Default();
+
+            async Task Submit2Default()
+            {
+                await SubmitAsync(false, true, true);
+                if (_buttonType == ButtonTypes.Button)
+                    await DefaultAsync();
+            }
+        }
+
         #endregion
 
-        private async Task ExitAsync(bool instantChange = false, bool playAudio = true)
-        {
-            _isHovered = false;
-            if (_isPressed) return;
-
-            await SelectOrDefaultBehavior(instantChange, playAudio, false);
-        }
-
-        private async Task ReleaseAsync(bool instantChange = false, bool playAudio = true)
-        {
-            _isPressed = false;
-            await SelectOrDefaultBehavior(instantChange, playAudio, false);
-        }
-
-        private async Task SelectOrDefaultBehavior(bool instantChange, bool playAudio, bool invokeEvent)
+        private async Task SelectOrDefault(bool instantChange, bool playAudio, bool invokeEvent)
         {
             bool usingFeature = _features != null && _features.Count > 0;
             if (usingFeature)
@@ -327,6 +297,55 @@ namespace Broccollie.UI
                         OnDefault?.Invoke(new UIEventArgs { Sender = this });
                 }
             }
+        }
+
+        private void ButtonBehavior(bool invokeEvent)
+        {
+            if (invokeEvent)
+                OnSelect?.Invoke(new UIEventArgs { Sender = this });
+        }
+
+        private async Task CheckboxBehaviorAsync(bool instantChange, bool playAudio, bool invokeEvent)
+        {
+            bool usingFeature = _features != null && _features.Count > 0;
+            if (usingFeature)
+                CancelCancellationToken();
+
+            _isSelected = !_isSelected;
+            if (_isSelected)
+            {
+                _currentState = UIStates.Select;
+                if (usingFeature)
+                    await this.ExecuteBehaviorAsync(UIStates.Select, instantChange, playAudio);
+
+                if (invokeEvent)
+                    OnSelect?.Invoke(new UIEventArgs { Sender = this });
+            }
+            else
+            {
+                _currentState = UIStates.Default;
+                if (usingFeature)
+                    await this.ExecuteBehaviorAsync(UIStates.Default, instantChange, playAudio);
+
+                if (invokeEvent)
+                    OnDefault?.Invoke(new UIEventArgs { Sender = this });
+            }
+        }
+
+        private async Task RadioButtonBehaviorAsync(bool instantChange, bool playAudio, bool invokeEvent)
+        {
+            if (_isSelected) return;
+            _isSelected = true;
+            _currentState = UIStates.Select;
+
+            if (_features != null && _features.Count > 0)
+            {
+                CancelCancellationToken();
+                await this.ExecuteBehaviorAsync(UIStates.Select, instantChange, playAudio);
+            }
+
+            if (invokeEvent)
+                OnSelect?.Invoke(new UIEventArgs { Sender = this });
         }
 
 #if UNITY_EDITOR

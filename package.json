@@ -6,8 +6,8 @@
   "unity": "2022.3",
   "dependencies": {
     "com.unity.inputsystem": "1.5.0",
-    "com.hyunwookimbob.broccollie.core": "2.2.0",
-    "com.hyunwookimbob.broccollie.audio": "0.1.0"
+    "com.davidkimighty.broccollie.core": "2.2.0",
+    "com.davidkimighty.broccollie.audio": "0.1.0"
   },
   "samples": [
     {
